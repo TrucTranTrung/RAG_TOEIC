@@ -1,0 +1,32 @@
+# Bắt đầu từ image Jenkins chính thức làm nền tảng
+FROM jenkins/jenkins:jdk21
+
+# Chuyển sang người dùng root để có quyền cài đặt các gói hệ thống
+USER root
+
+# Cập nhật danh sách gói và cài đặt các phụ thuộc cần thiết
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    git
+
+# Tạo thư mục cho GPG key của Docker
+RUN install -m 0755 -d /etc/apt/keyrings
+
+# Tải GPG key chính thức của Docker và lưu vào thư mục đã tạo
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+
+RUN echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Cập nhật lại danh sách gói sau khi đã thêm kho lưu trữ mới
+RUN apt-get update
+RUN apt-get install -y docker-ce-cli docker-compose-plugin
+RUN ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+# Chuyển về người dùng jenkins mặc định để đảm bảo an toàn
+USER jenkins

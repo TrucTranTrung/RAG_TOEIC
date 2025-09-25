@@ -1,0 +1,9 @@
+uvicorn 
+requests
+dotenv
+fastapi
+langchain-community==0.3.23
+langchain-postgres==0.0.15
+sentence-transformers==4.1.0
+python-multipart==0.0.20
+psycopg[binary]==3.1.18
