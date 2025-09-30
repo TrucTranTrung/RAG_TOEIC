@@ -1,6 +1,11 @@
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
+import requests
+import audio
+import os
+from dotenv import load_dotenv
+from prompt import *
 
 class TOEICAgentHub:
     def __init__(self):
@@ -16,18 +21,6 @@ class TOEICAgentHub:
             "translation": ChatOpenAI(model="gpt-4o", temperature=0.2),
         }
 
-        # Prompt template cho từng task (nếu có thi hay viet ben file promt va goi qua day, lam on)
-        self.prompts = {
-            "reading": ChatPromptTemplate.from_template(
-                "Bạn là trợ lý TOEIC Reading. Hãy giải thích và chọn đáp án: {question}"
-            ),
-            "listening": ChatPromptTemplate.from_template(
-                "Bạn là trợ lý TOEIC Listening. Hãy phân tích hội thoại và chọn đáp án: {question}"
-            ),
-            "translation": ChatPromptTemplate.from_template(
-                "Dịch chính xác câu sau sang tiếng Việt: {sentence}"
-            ),
-        }
 
         # Prompt cho host agent
         self.routing_prompt = ChatPromptTemplate.from_template("""
@@ -40,6 +33,32 @@ class TOEICAgentHub:
         Trả lời duy nhất bằng tên task.
         User input: {input}
         """)
+
+    def BotLis234(self, user_input: str) -> str:
+        api_url = os.getenv("API_GEMINI_ENTITIES")
+        prompt = listening_part234.format(
+                subject="about TEOIC Listening part 2,3,4", 
+                question=user_input
+            )
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        # Gửi yêu cầu POST đến API
+        response = requests.post(
+            api_url, 
+            headers={"Content-Type": "application/json"}, 
+            json=payload
+        )
+        response.raise_for_status() 
+
+        # Xử lý response
+        response_json = response.json()
+        # Trích xuất text 
+        text = response_json.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+        # Xử lý và chuyển đổi text thành list
+        output_list = [i.strip().lower() for i in text.replace('[','').replace(']','').replace('"','').split(',') if i.strip()]
+        # Chuyển list thành một chuỗi duy nhất
+        output_string = ", ".join(output_list)
+        
+        return output_string
 
     def route_task(self, user_input: str) -> str:
         """Host agent quyết định gọi task nào"""
@@ -61,11 +80,3 @@ class TOEICAgentHub:
         else:
             return model.invoke(kwargs["input"])
 
-# --- Demo sử dụng ---
-hub = TOEICAgentHub()
-
-res1 = hub.run("reading", question="She ____ to the market yesterday. (A) go (B) went (C) goes)")
-res2 = hub.run("translation", sentence="I will take the TOEIC test next month.")
-
-print("Reading:", res1.content)
-print("Translation:", res2.content)
