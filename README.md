@@ -2,7 +2,7 @@
 weight : https://drive.google.com/drive/folders/1njve-dILpn-wqR32L7Yqk1wwMN2ADfl8?usp=sharing
 
 # Run Docker Compose
-docker compose -f infrastructure/docker/docker-compose.yml up 
+docker compose -f infrastructure/docker/docker-compose.yml up
 
 # Chạy minikube
 minikube start --driver=docker --gpus=all
