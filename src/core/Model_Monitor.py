@@ -28,19 +28,20 @@ def chitchat_tool(text: str) -> str:
     return "NOT_CHITCHAT"
 # =============================== End Tools wrapper ==============================
 
-# tests = [
-#         "Xin chào bạn!",
-#         "Hôm nay bạn khỏe không?",
-#         "Complete the sentence: She ____ to school. A. goes B. gone C. went D. gone",
-#         "Are you sure?",
-#         "What's the weather like?",
-#         "Điền từ thích hợp A. B. C. D.",
-#         "Hi, could you help me? Complete the sentence: He ___ the book.",
-#         "Cảm ơn bạn nhé!",
-#         "Mình mệt quá, hôm nay không muốn học"
-#     ]
-# for t in tests:
-#     print(f"{t!r} -> {chitchat_tool(t)!r}")
+tests = [
+        "Xin chào bạn!",
+        "Hôm nay bạn khỏe không?",
+        "Complete the sentence: She ____ to school. A. goes B. gone C. went D. gone",
+        "Are you sure?",
+        "What's the weather like?",
+        "Điền từ thích hợp A. B. C. D.",
+        "Hi, could you help me? Complete the sentence: He ___ the book.",
+        "Bạn có thể giúp tôi trả lời câu hỏi TOEIC không?",
+        "Cảm ơn bạn nhé!",
+        "Mình mệt quá, hôm nay không muốn học"
+    ]
+for t in tests:
+    print(f"{t!r} -> {chitchat_tool(t)!r}")
 
 # =============================== Bot Hosting ================================
 class AgentState(TypedDict):

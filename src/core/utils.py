@@ -45,7 +45,7 @@ SMALL_TALK_REGEX = [
 # Convenience compiled lists for contains_pattern usage if needed
 GREETINGS_RE = [re.compile(re.escape(p), re.IGNORECASE) for p in GREETINGS_SUBSTR]
 THANKS_RE = [re.compile(re.escape(p), re.IGNORECASE) for p in THANKS_SUBSTR]
-SMALL_TALK_RE = SMALL_TALK_REGEX  # keep regex list separate
+SMALL_TALK_RE = SMALL_TALK_REGEX  
 # ==================== End Heuristics / Patterns ===============================
 
 # ==================== Helpers =================================================

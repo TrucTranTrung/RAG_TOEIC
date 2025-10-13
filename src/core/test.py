@@ -12,7 +12,7 @@ import re
 warnings.filterwarnings("ignore")  # tắt QuickGELU warning
 
 # --- 1. Set API key ---
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCDs_02II0VFpF_ILp4Te6xaeA085s"
+
 
 # --- 2. AgentState ---
 class AgentState(TypedDict):
