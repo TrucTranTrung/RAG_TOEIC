@@ -10,7 +10,7 @@ IMAGE_FORMAT = "JPEG"
 def configure_environment():
     """Thiết lập biến môi trường và cấu hình cơ bản."""
     warnings.filterwarnings("ignore")
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyDPIYi9iuhzzg6wfx6tY2dPuknQY_FGtm4" 
+    os.environ["GOOGLE_API_KEY"] = "" 
     print("Môi trường đã được cấu hình.")
 
 def encode_image_to_base64(image_path: str) -> str:
