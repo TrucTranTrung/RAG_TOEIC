@@ -11,8 +11,8 @@ from utils import is_chitchat_reply
 
 
 # ================================ Tool wrapper  =================================
-@tool
-def chitchat_tool(text: str) -> str:
+# @tool
+def chitchat_tool(text: str):
     """
     Tool for the host bot: detects casual or social conversations (chitchat).
     - If the user message is a greeting / thank you / small talk -> return a friendly Vietnamese reply.
@@ -20,12 +20,12 @@ def chitchat_tool(text: str) -> str:
     """
     text = (text or "").strip()
     if not text:
-        return "NOT_CHITCHAT"
+        return "Dường như bạn chưa nhập gì cả. Bạn có thể hỏi mình về TOEIC nhé!" # empty input -> friendly reply
 
     reply = is_chitchat_reply(text)
     if reply:
-        return reply
-    return "NOT_CHITCHAT"
+        return reply # it's chit-chat, return a friendly reply
+    return 1 # call agent
 # =============================== End Tools wrapper ==============================
 
 tests = [
