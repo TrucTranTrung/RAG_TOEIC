@@ -1,10 +1,10 @@
 # Setup logging
 from langchain_core.runnables import Runnable
-from langchain.callbacks.base import BaseCallbackHandler
-from langchain.llms.base import BaseLLM
-from langchain.tools import BaseTool
-from langchain.prompts import BasePromptTemplate
-from langchain.agents import AgentExecutor, create_react_agent
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.tools import BaseTool
+from langchain_core.prompts import BasePromptTemplate
+from langchain.agents import create_agent
 from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
 import logging
@@ -14,37 +14,37 @@ logger = logging.getLogger(__name__)
 
 class BaseAgent(ABC):
     """
-    Đây là (Interface) cho tất cả các agent.
+    Base interface for all agents using LangChain 1.0.1 and LangGraph 1.0.1.
 
-    Class này sẽ TỰ ĐỘNG làm các phần :
-    - Tạo một "agent runnable" (bộ não)
-    - Tạo một "agent executor" (vòng lặp chạy)
-    - Cung cấp phương thức .invoke() và .ainvoke() để chạy agent.
+    This class automatically:
+    - Creates an agent executor with LangGraph
+    - Provides .invoke() and .ainvoke() methods for running agents
+
+    Note: Uses LangChain 1.0.1 conventions with 'model' instead of 'llm'.
     """
 
-    executor: AgentExecutor
-    agent_runnable: Runnable
-    llm: BaseLLM
+    executor: Runnable  # LangGraph agent executor
+    model: BaseChatModel  # Language model (renamed from llm)
     tools: List[BaseTool]
     prompt: BasePromptTemplate
 
     def __init__(
         self,
-        llm: BaseLLM,
+        model: BaseChatModel,
         custom_callbacks: Optional[List[BaseCallbackHandler]] = None,
         agent_executor_options: Optional[Dict[str, Any]] = None
     ):
         """
-        Hàm khởi tạo của BaseAgent.
-        Nó sẽ gọi các phương thức abstract _get_tools và _get_prompt
-        để check thông tin từ class con.
+        Initialize BaseAgent with LangChain 1.0.1 conventions.
+
+        Calls abstract methods _get_tools and _get_prompt from subclass.
 
         Args:
-            llm: Một instance của BaseLLM (ví dụ: ChatGoogleGenerativeAI).
-            custom_callbacks: Danh sách các callback handler.
-            agent_executor_options: Các tùy chọn cho AgentExecutor (ví dụ: max_iterations).
+            model: A chat model instance (e.g., ChatGoogleGenerativeAI).
+            custom_callbacks: List of callback handlers (optional).
+            agent_executor_options: Additional options (optional).
         """
-        self.llm = llm
+        self.model = model
 
         logger.info(f"Khởi tạo agent {self.__class__.__name__}...")
 
@@ -56,34 +56,36 @@ class BaseAgent(ABC):
             raise ValueError(
                 f"{self.__class__.__name__} must implement _get_tools and _get_prompt")
 
-        # 2. Khởi tạo agent (chuẩn ReAct)
-        self.agent_runnable = create_react_agent(
-            llm=self.llm,
-            tools=self.tools,
-            prompt=self.prompt
-        )
+        # 2. Convert prompt template to system message for LangGraph
+        # LangGraph uses message-based interface, not prompt templates
+        # We extract the template string and use it as system message
+        try:
+            # Get the template string from the prompt
+            if hasattr(self.prompt, 'template'):
+                system_message = self.prompt.template
+            else:
+                # Fallback: format without variables
+                system_message = "You are a helpful AI assistant."
+                logger.warning(
+                    "Could not extract template from prompt, using default system message")
+        except Exception as e:
+            logger.error(f"Error extracting system message: {e}")
+            system_message = "You are a helpful AI assistant."
 
-        # 3. Tự động xây dựng "trình thực thi" agent
+        # 3. Create LangGraph agent with system message (using LangChain 1.0.1)
+        logger.info(f"Creating LangGraph agent with create_agent...")
 
-        # Thiết lập các tùy chọn mặc định và ghi đè
-        default_exec_options = {
-            "verbose": True,
-            "handle_parsing_errors": True,
-            "max_iterations": 5
-        }
-        if agent_executor_options:
-            default_exec_options.update(agent_executor_options)
-
-        logger.info(
-            f"Tạo AgentExecutor với các tùy chọn: {default_exec_options}")
-
-        self.executor = AgentExecutor(
-            agent=self.agent_runnable,
-            tools=self.tools,
-            callbacks=custom_callbacks,
-            **default_exec_options
-        )
-        logger.info(f"Agent {self.__class__.__name__} built successfully.")
+        try:
+            self.executor = create_agent(
+                model=self.model,
+                tools=self.tools,
+                system_prompt=system_message
+            )
+            logger.info(
+                f"Agent {self.__class__.__name__} built successfully with LangGraph.")
+        except Exception as e:
+            logger.error(f"Failed to create agent: {e}")
+            raise RuntimeError(f"Agent creation failed: {e}") from e
 
     @abstractmethod
     def _get_tools(self) -> List[BaseTool]:
@@ -103,14 +105,67 @@ class BaseAgent(ABC):
         """
         Phương thức để gọi agent (đồng bộ).
         'input_data' là một dict, ví dụ: {'input': 'Câu hỏi của bạn'}
+
+
         """
         logger.info(f"--- Gọi Agent: {self.__class__.__name__} ---")
-        return self.executor.invoke(input_data)
+
+        if "input" in input_data:
+            user_message = input_data["input"]
+            messages = [("human", user_message)]
+            langgraph_input = {"messages": messages}
+        else:
+
+            langgraph_input = input_data
+
+        result = self.executor.invoke(langgraph_input)
+
+        # LangGraph returns {"messages": [...]}
+        if "messages" in result:
+            last_message = result["messages"][-1]
+            # Extract content from last message
+            if hasattr(last_message, 'content'):
+                output = last_message.content
+            else:
+                output = str(last_message)
+
+            return {
+                "input": input_data.get("input", ""),
+                "output": output
+            }
+        return result
 
     async def ainvoke(self, input_data: dict) -> dict:
         """
         Phương thức để gọi agent (bất đồng bộ).
+        'input_data' là một dict, ví dụ: {'input': 'Câu hỏi của bạn'}
+
+
         """
         logger.info(
             f"--- Gọi Agent (Bất đồng bộ): {self.__class__.__name__} ---")
-        return await self.executor.ainvoke(input_data)
+
+        if "input" in input_data:
+            user_message = input_data["input"]
+            messages = [("human", user_message)]
+            langgraph_input = {"messages": messages}
+        else:
+            langgraph_input = input_data
+
+        # Invoke LangGraph agent
+        result = await self.executor.ainvoke(langgraph_input)
+
+        # LangGraph returns {"messages": [...]}
+        if "messages" in result:
+            last_message = result["messages"][-1]
+            # Extract content from last message
+            if hasattr(last_message, 'content'):
+                output = last_message.content
+            else:
+                output = str(last_message)
+
+            return {
+                "input": input_data.get("input", ""),
+                "output": output
+            }
+        return result
