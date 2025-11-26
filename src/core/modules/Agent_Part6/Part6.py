@@ -244,7 +244,7 @@ async def main():
     # --- Initialize Gemini 2.5 Flash Model ---
     logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
 
-    google_api_key = "AIzaSyDGOZPKxT-dJC_FmODLFk5qABsU6JeqUfg"
+    google_api_key = ""
     if not google_api_key:
         print("="*50)
         print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
@@ -328,3 +328,4 @@ async def main():
 # Chạy hàm main bất đồng bộ
 if __name__ == "__main__":
     asyncio.run(main())
+
