@@ -67,7 +67,7 @@ class BaseAgent(ABC):
 
         # Thiết lập các tùy chọn mặc định và ghi đè
         default_exec_options = {
-            "verbose": True,
+            "verbose": False,
             "handle_parsing_errors": True,
             "max_iterations": 5
         }
