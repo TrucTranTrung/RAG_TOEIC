@@ -17,7 +17,7 @@ from typing import List, Dict
 _BLANK_RE = re.compile(r'_{2,}|\[BLANK\]|\<BLANK\>', flags=re.I)
 _HEADER_RE = re.compile(r'^\s*(To:|From:|Subject:|Date:)\b', flags=re.I)
 _BLOCK_NUM_LINE = re.compile(r'^\s*(\d{1,3})\.\s*$', flags=re.M)
-_OPTION_LINE = re.compile(r'^\s*\(?[A-Da-d]\)?[\.\)]\s+.*')  # matches "(A) text" or "A) text" or "A. text"
+_OPTION_LINE = re.compile(r'^\s*\(?[A-Da-d]\)?[\.\)]\s+.*')  
 _GARBAGE_TOKEN_RE = re.compile(r'\(\(+\d+\)+\)|Choices:?', flags=re.I)
 
 def _split_lines_keep(text: str) -> List[str]:
@@ -140,7 +140,6 @@ def clean_and_extract_passage_simple(passage: str) -> str:
     else:
         # if some inline options were captured already, we keep them and do NOT duplicate numeric blocks
         pass
-
     return "\n".join(out_parts).strip()
 
 
@@ -244,7 +243,7 @@ async def main():
     # --- Initialize Gemini 2.5 Flash Model ---
     logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
 
-    google_api_key = ""
+    google_api_key = "AIzaSyCWjJtVsc66mPTpU3z0CBFFVRC_3HUG5KY"
     if not google_api_key:
         print("="*50)
         print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
@@ -328,4 +327,3 @@ async def main():
 # Chạy hàm main bất đồng bộ
 if __name__ == "__main__":
     asyncio.run(main())
-
