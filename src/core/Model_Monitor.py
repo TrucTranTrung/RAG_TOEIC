@@ -42,7 +42,6 @@ tests = [
     ]
 for t in tests:
     print(f"{t!r} -> {chitchat_tool(t)!r}")
-
 # =============================== Bot Hosting ================================
 class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]

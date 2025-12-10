@@ -23,3 +23,6 @@ kubectl describe pod ai-server-deployment-784fcfccd4-fc5q6 -n rag-app
 
 # Chạy Streamlit
 streamlit run Front_end/chatbot_app.py
+
+
+python -m src.core.modules.Agent_Part6.Part6
