@@ -105,8 +105,6 @@ class BaseAgent(ABC):
         """
         Phương thức để gọi agent (đồng bộ).
         'input_data' là một dict, ví dụ: {'input': 'Câu hỏi của bạn'}
-
-
         """
         logger.info(f"--- Gọi Agent: {self.__class__.__name__} ---")
 
@@ -139,8 +137,6 @@ class BaseAgent(ABC):
         """
         Phương thức để gọi agent (bất đồng bộ).
         'input_data' là một dict, ví dụ: {'input': 'Câu hỏi của bạn'}
-
-
         """
         logger.info(
             f"--- Gọi Agent (Bất đồng bộ): {self.__class__.__name__} ---")
