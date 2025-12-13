@@ -243,7 +243,7 @@ async def main():
     # --- Initialize Gemini 2.5 Flash Model ---
     logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
 
-    google_api_key = "AIzaSyCWjJtVscHUG5KY"
+    google_api_key = "AI"
     if not google_api_key:
         print("="*50)
         print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
