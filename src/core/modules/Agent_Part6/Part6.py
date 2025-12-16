@@ -1,175 +1,58 @@
+import requests
+import logging
+import asyncio
+
 from random import sample
 from typing import List, Dict, Optional, Tuple
-import os
-import spacy
 from dotenv import load_dotenv
 from ..Agent_Base import BaseAgent
 from langchain_google_genai import ChatGoogleGenerativeAI 
 from langchain_core.tools import BaseTool, tool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
-import logging
-import asyncio
+
+from utils import clean_and_extract_passage_simple
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-import re
-from typing import List, Dict
 
-_BLANK_RE = re.compile(r'_{2,}|\[BLANK\]|\<BLANK\>', flags=re.I)
-_HEADER_RE = re.compile(r'^\s*(To:|From:|Subject:|Date:)\b', flags=re.I)
-_BLOCK_NUM_LINE = re.compile(r'^\s*(\d{1,3})\.\s*$', flags=re.M)
-_OPTION_LINE = re.compile(r'^\s*\(?[A-Da-d]\)?[\.\)]\s+.*')  
-_GARBAGE_TOKEN_RE = re.compile(r'\(\(+\d+\)+\)|Choices:?', flags=re.I)
-
-def _split_lines_keep(text: str) -> List[str]:
-    return [ln for ln in text.replace('\r\n','\n').split('\n')]
-
-def _is_header_line(line: str) -> bool:
-    return bool(_HEADER_RE.match(line))
-
-def _is_choice_block_start(line: str) -> bool:
-    return bool(re.match(r'^\s*\d{1,3}\.\s*$', line))
-
-def _clean_choice_lines(lines: List[str]) -> List[str]:
-    cleaned = []
-    seen = set()
-    for ln in lines:
-        if not ln or ln.strip()=="":
-            continue
-        ln2 = _GARBAGE_TOKEN_RE.sub('', ln).strip()
-        ln2 = re.sub(r'^\s*\d{1,3}\.\s*', '', ln2).strip()
-        if not ln2:
-            continue
-        if ln2 not in seen:
-            cleaned.append(ln2)
-            seen.add(ln2)
-    return cleaned
-
-def _collect_choice_blocks(lines: List[str], start_idx: int) -> Dict[str, List[str]]:
-    blocks = {}
-    i = start_idx
-    n = len(lines)
-    current_num = None
-    current_buf = []
-    while i < n:
-        ln = lines[i].rstrip()
-        m = _BLOCK_NUM_LINE.match(ln)
-        if m:
-            if current_num is not None:
-                blocks[current_num] = _clean_choice_lines(current_buf)
-            current_num = m.group(1)
-            current_buf = []
-        else:
-            current_buf.append(ln)
-        i += 1
-    if current_num is not None:
-        blocks[current_num] = _clean_choice_lines(current_buf)
-    return blocks
-
-def clean_and_extract_passage_simple(passage: str) -> str:
-    """
-    Simpler & robust: if a line has a blank, return that line and any immediate following
-    option lines (A/B/C/D). If no inline options present, fallback to parsing numeric choice blocks.
-    """
-    if not passage:
-        return ""
-
-    lines = _split_lines_keep(passage)
-    # find first numeric choice block if exists
-    first_choice_idx = None
-    for idx, ln in enumerate(lines):
-        if _is_choice_block_start(ln):
-            first_choice_idx = idx
-            break
-
-    # header_lines: keep leading To/From/Subject/Date lines
-    header_lines = []
-    i = 0
-    while i < len(lines) and _is_header_line(lines[i]):
-        header_lines.append(lines[i].rstrip())
-        i += 1
-
-    # split body and choice lines
-    if first_choice_idx is not None:
-        body_lines = lines[:first_choice_idx]
-        choice_lines = lines[first_choice_idx:]
-    else:
-        body_lines = lines
-        choice_lines = []
-
-    out_parts = []
-    if header_lines:
-        out_parts.extend([ln.rstrip() for ln in header_lines])
-        out_parts.append("")
-
-    # scan body_lines: for each line that contains a blank, capture it and any following option lines
-    used_body_indices = set()
-    for idx, ln in enumerate(body_lines):
-        if _BLANK_RE.search(ln):
-            # capture this line
-            out_parts.append(ln.strip())
-            used_body_indices.add(idx)
-            # capture immediate following option lines (A/B/C/D), stop on first non-option or blank line
-            j = idx + 1
-            found_opt = False
-            while j < len(body_lines):
-                next_ln = body_lines[j].strip()
-                if _OPTION_LINE.match(next_ln):
-                    out_parts.append(next_ln)
-                    used_body_indices.add(j)
-                    found_opt = True
-                    j += 1
-                    continue
-                # also accept lines like "A) attends" without parentheses, handled by regex above
-                # stop if next line is empty or another header/metadata line
-                break
-            out_parts.append("")  # blank line after each question block
-
-    # If no inline options were found for any question, fall back to parsing numeric choice blocks
-    if not any(_OPTION_LINE.match(l.strip()) for l in body_lines):
-        if choice_lines:
-            choices_map = _collect_choice_blocks(choice_lines, 0)
-            # append cleaned choice blocks
-            if choices_map:
-                for num in sorted(choices_map, key=lambda x: int(x)):
-                    out_parts.append(f"{num}.")
-                    for o in choices_map[num]:
-                        out_parts.append(o)
-        else:
-            # nothing to append
-            pass
-    else:
-        # if some inline options were captured already, we keep them and do NOT duplicate numeric blocks
-        pass
-    return "\n".join(out_parts).strip()
 
 
 @tool
-def vocab_search(query: str) -> str:
-    """
-    Sử dụng Google Search để tìm kiếm định nghĩa, ví dụ, và từ đồng nghĩa 
-    của một từ khóa trong ngữ cảnh công sở.
-    
-    Args:
-        query: Từ hoặc cụm từ cần tra cứu (ví dụ: 'retreat business definition').
-        
-    Returns:
-        Kết quả tìm kiếm web.
-    """
-    # Lệnh gọi tool Google Search thực tế được mô hình thực hiện.
-    # Trong code này, ta chỉ cần định nghĩa function signature và mô tả 
-    # để mô hình Gemini biết nó có thể gọi Google Search.
-    
-    # KHI BẠN CHẠY TRÊN MÁY: Gemini SDK sẽ tự động xử lý và
-    # thực hiện tìm kiếm này nếu mô hình quyết định gọi nó.
-    
-    # Để đơn giản hóa, ta sẽ truyền trực tiếp tool 'google_search' vào Agent.
-    # Tuy nhiên, nếu bạn muốn một hàm riêng (như yêu cầu), ta cần một bước trung gian:
-    
-    # Hàm này CHỈ DÙNG để định nghĩa Signature cho Tool Calling.
-    # Trong luồng Part 6, ta sẽ dùng cách 1 (tức là gộp và yêu cầu tìm kiếm trực tiếp).
-    print("hehe")
-    return f"Đã chuẩn bị tìm kiếm định nghĩa cho: {query}"
+def vocab_search(word: str, full: bool = False) -> dict:
+    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+    try:
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        data = r.json()[0]
 
+        results = []
+        meanings = data.get("meanings", [])
+        if not full:
+            meanings = meanings[:2]
+
+        for m in meanings:
+            defs = m.get("definitions", [])
+            if not defs:
+                continue
+
+            d = defs[0]  
+            results.append({
+                "partOfSpeech": m.get("partOfSpeech"),
+                "definition": d.get("definition"),
+                "example": d.get("example")
+            })
+
+        return {
+            "word": word,
+            "meanings": results
+        }
+
+    except Exception:
+        return {
+            "word": word,
+            "meanings": [],
+            "error": "Definition not found"
+        }
 
 # --- ĐỊNH NGHĨA CÁC CLASS AGENT (SỬ DỤNG GEMINI API) ---
 class LanguageAgentPart6(BaseAgent):
@@ -184,7 +67,7 @@ class LanguageAgentPart6(BaseAgent):
 
     def _get_prompt(self) -> BasePromptTemplate:
         """
-        Cung cấp một prompt template (hướng dẫn) CỤ THỂ cho ReadingAgent Part 6.
+        Cung cấp một prompt template CỤ THỂ cho ReadingAgent Part 6.
         """
         prompt_string = """
         Bạn là một trợ lý AI chuyên gia về Đọc hiểu và Ngữ pháp Tiếng Anh (TOEIC Reading).
@@ -238,6 +121,8 @@ class LanguageAgentPart6(BaseAgent):
 
 # --- CHẠY DEMO ĐA TOOL/AGENT (TÍCH HỢP) ---
 async def main():
+    # print(vocab_search("address"))
+    # print(vocab_search("anxiety"))
     """Hàm chạy chính (bất đồng bộ) để test agent."""
 
     # --- Initialize Gemini 2.5 Flash Model ---
@@ -271,36 +156,6 @@ async def main():
     print("\n--- Bắt đầu chạy ReadingAgent (Async) ---")
 
     # --- DỮ LIỆU VÍ DỤ PART 6 ---
-    passage = """To: Customer Service Department
-    From: Kenneth Venkman
-    Subject: Incorrect billing statement
-    Date: July 20
-    I am contacting you once ____ (131)  after receiving no reply to my prior e-mail regarding the problem with my gas bill for the month of June. After receiving my bill for last month, I queried the charge that was included for unpaid gas in May.
-    When I called your department about the issue, I ____ (132 ) that the incorrect charges would be removed and that a new bill would be sent to me by e-mail.
-    However, the new bill still includes these erroneous charges, which I have no intention of paying. Therefore, I have attached an image of a receipt ____  (133) that I paid my bill for the month of May in full on June 12. ____ (134).
-    Sincerely,
-    Kenneth Venkman
-
-    131.
-    much
-    before
-    previously
-    again
-    132.
-    will be informed
-    would have informed
-    was informed
-    had been informing
-    133.
-    collaborating
-    confirming
-    convincing
-    converting
-    134
-    I will send the requested payment at my earliest convenience.
-    I will send the requested payment at my earliest convenience.
-    I will send the requested payment at my earliest convenience.
-    I would like you to rectify this situation as soon as possible"""
     PART_6_PASSAGE = """
     The annual departmental retreat will be held next month. Please check the attachment for the detailed schedule.
     We hope everyone _______ this important team-building event.
