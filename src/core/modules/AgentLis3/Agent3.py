@@ -75,7 +75,7 @@ class TOEICPart3Agent(BaseAgent):
 
 async def main():
     # 1. Khởi tạo Model
-    google_api_key = os.environ.get("GOOGLE_API_KEY")
+    google_api_key = os.environ.get("openai_api_key")
     if not google_api_key:
         print("="*50)
         print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")

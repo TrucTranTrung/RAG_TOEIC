@@ -1,24 +1,29 @@
 import requests
 import logging
 import asyncio
+import os
 
 from random import sample
 from typing import List, Dict, Optional, Tuple
 from dotenv import load_dotenv
-from ..Agent_Base import BaseAgent
-from langchain_google_genai import ChatGoogleGenerativeAI 
+from langchain_openai import ChatOpenAI
 from langchain_core.tools import BaseTool, tool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 
-from utils import clean_and_extract_passage_simple
+from ..Agent_Base import BaseAgent
+from .utils import clean_and_extract_passage_simple
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+load_dotenv(dotenv_path="config/.env")
 
 
 @tool
 def vocab_search(word: str, full: bool = False) -> dict:
+
+    """Searches for vocabulary definitions from an online dictionary API."""
+
     url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
     try:
         r = requests.get(url, timeout=5)
@@ -61,7 +66,7 @@ class LanguageAgentPart6(BaseAgent):
         """
         Cung cấp danh sách các tools CHUYÊN BIỆT cho Reading Part 6.
         """
-        logger.info("ReadingAgent: Cung cấp tools [check_grammar_tool, find_synonym_tool]")
+        logger.info("ReadingAgent: Cung cấp tools [vocab_search]")
         return [vocab_search]
 
 
@@ -128,20 +133,19 @@ async def main():
     # --- Initialize Gemini 2.5 Flash Model ---
     logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
 
-    google_api_key = "AI"
-    if not google_api_key:
+    openai_api_key = os.environ.get("openai_api_key")
+    if not openai_api_key:
         print("="*50)
-        print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
-        print("Lệnh (Terminal/PowerShell): set GOOGLE_API_KEY=YOUR_API_KEY_HERE")
+        print("LỖI: Vui lòng đặt biến môi trường openai_api_key để chạy ví dụ này.")
+        print("Lệnh (Terminal/PowerShell): set openai_api_key=YOUR_API_KEY_HERE")
         print("="*50)
         return
 
     try:
-        # Sử dụng model "gemini-2.5-flash"
-        model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            api_key=google_api_key,
-            convert_system_message_to_human=True
+        model = ChatOpenAI(
+            model="gpt-4o-mini",   # hoặc gpt-4.1 / gpt-4o
+            api_key=openai_api_key,
+            temperature=0.2
         )
     except Exception as e:
         logger.error(f"Không thể khởi tạo Gemini model: {e}")
@@ -174,7 +178,7 @@ async def main():
         })
 
         print("\n--- Kết quả từ ReadingAgent (Gemini) ---")
-        print(f"Câu trả lời cuối cùng: {result['output'][0]['text']}")
+        print(f"Câu trả lời cuối cùng: {result['output']}")
 
     except Exception as e:
         logger.error(f"Lỗi khi chạy agent: {e}")
