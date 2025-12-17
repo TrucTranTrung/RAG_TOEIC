@@ -1,0 +1,15 @@
+FROM paddlepaddle/paddle:3.2.0-gpu-cuda12.9-cudnn9.9
+
+WORKDIR /app
+
+COPY OCR_api.py .
+COPY requirements.txt .
+
+RUN python -m pip install -U pip \
+ && python -m pip install -r requirements.txt \
+ && python -m pip install \
+ https://paddle-whl.bj.bcebos.com/nightly/cu129/safetensors/safetensors-0.6.2.dev0-cp38-abi3-linux_x86_64.whl
+
+EXPOSE 8501
+
+CMD ["uvicorn", "OCR_api:app", "--host", "0.0.0.0", "--port", "8501"]
