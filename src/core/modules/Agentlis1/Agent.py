@@ -207,7 +207,7 @@ async def main():
             return
     except NameError:
         logger.warning("Không thể tìm __file__, giả sử ảnh 'mo_ta_tranh1.png' nằm cùng thư mục.")
-        image1 = "mo_ta_tranh1.png"
+        image1 = "D:\Github\RAG_TOEIC1\src\core\modules\data_test\mo_ta_tranh1.png"
         if not os.path.exists(image1):
             logger.error(f"Lỗi: Không tìm thấy file ảnh tại: {image1}")
             print(f"Lỗi: Không tìm thấy file ảnh tại: {image1}")
