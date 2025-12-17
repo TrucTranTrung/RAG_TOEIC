@@ -1,12 +1,11 @@
 import os
-import warnings
 import sys
 import asyncio
 import logging
+
 from dotenv import load_dotenv
 from typing import List
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import BasePromptTemplate, PromptTemplate
 from langchain_core.tools import BaseTool, Tool
 
@@ -29,12 +28,6 @@ class TOEICPart3Agent(BaseAgent):
     Agent chuyên biệt cho TOEIC Part 3.
     Thừa kế hoàn toàn từ BaseAgent.
     """
-    def __init__(self, model: BaseChatModel):
-        logger.info(f"[{self.__class__.__name__}]: Khởi tạo...")
-        warnings.filterwarnings("ignore")
-        self.llm = model
-        super().__init__(llm=self.llm)
-
     def __analyze_logic_handler(self, tool_input: str) -> str:
         """Logic cốt lõi của Tool: Validate -> Gọi LLM -> Trả kết quả."""
         logger.info(f"\n[Tool Called]: analyze_part3_problem_tool")
@@ -70,25 +63,25 @@ class TOEICPart3Agent(BaseAgent):
 
 async def main():
     # 1. Khởi tạo Model
-    google_api_key = os.environ.get("openai_api_key")
-    if not google_api_key:
+    openai_api_key = os.environ.get("openai_api_key")
+    if not openai_api_key:
         print("="*50)
-        print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
+        print("LỖI: Vui lòng đặt biến môi trường openai_api_key để chạy ví dụ này.")
         print("="*50)
         return
 
     try:
-        model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            api_key=google_api_key,
-            convert_system_message_to_human=True
+        model = ChatOpenAI(
+            model="gpt-4o-mini",   # hoặc gpt-4.1 / gpt-4o
+            api_key=openai_api_key,
+            temperature=0.2
         )
     except Exception as e:
         logger.error(f"Không thể khởi tạo Gemini model: {e}")
         return
 
     # 2. Dữ liệu Input & Đường dẫn Audio
-    AUDIO_FILE_PATH_TEST = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\Ld1lt.mp3" 
+    AUDIO_FILE_PATH_TEST = "/home/daniel/Documents/RAG_TOEIC/src/core/modules/data_test/6KXxh.mp3" 
     #AUDIO_FILE_PATH_TEST = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\6KXxh.mp3"
 
     # CONTEXT_OK = """

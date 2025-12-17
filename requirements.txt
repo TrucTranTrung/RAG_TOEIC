@@ -115,4 +115,5 @@ wrapt==2.0.0
 xxhash==3.6.0
 yarl==1.22.0
 zstandard==0.25.0
-assemblyai
+assemblyai==0.48.3
+librosa==0.10.0
