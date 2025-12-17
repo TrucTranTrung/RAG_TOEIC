@@ -9,10 +9,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import BasePromptTemplate, PromptTemplate
 from langchain_core.tools import BaseTool, Tool
-from langchain.schema.messages import HumanMessage
-from langchain.agents import AgentExecutor, create_react_agent 
 
-# Ensure the parent 'modules' package directory is on sys.path so imports below work
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODULES_DIR = os.path.dirname(SCRIPT_DIR)
 if MODULES_DIR not in sys.path:
@@ -22,55 +19,53 @@ from Agent_Base.Agent import BaseAgent
 from AgentLis3.utils import process_and_label_gender, pre_validate_part3_context
 from AgentLis3.prompts import ANALYSIS_PROMPT_TEXT_P3, REACT_TEMPLATE_P3
 
-
+# Cấu hình
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 load_dotenv(dotenv_path="config/.env")
 
 class TOEICPart3Agent(BaseAgent):
-    llm: BaseChatModel
-
+    """
+    Agent chuyên biệt cho TOEIC Part 3.
+    Thừa kế hoàn toàn từ BaseAgent.
+    """
     def __init__(self, model: BaseChatModel):
-        logger.info(f"[{self.__class__.__name__}]: Khởi tạo với model (Bỏ qua logic tạo Executor)...")
+        logger.info(f"[{self.__class__.__name__}]: Khởi tạo...")
         warnings.filterwarnings("ignore")
         self.llm = model
-        super().__init__(model=self.llm) 
-        self.tools = self._get_tools() 
+        super().__init__(llm=self.llm)
 
     def __analyze_logic_handler(self, tool_input: str) -> str:
+        """Logic cốt lõi của Tool: Validate -> Gọi LLM -> Trả kết quả."""
         logger.info(f"\n[Tool Called]: analyze_part3_problem_tool")
 
+        # 1. Kiểm tra định dạng (A, B, C, D)
         validation = pre_validate_part3_context(tool_input)
         if validation != "1":
             return validation
 
+        # 2. Xử lý logic qua LLM (Sử dụng llm từ lớp cha BaseAgent)
         try:
             final_prompt = ANALYSIS_PROMPT_TEXT_P3 + f"\n{tool_input}"
-            message = HumanMessage(content=[{"type": "text", "text": final_prompt}])
-            response = self.llm.invoke([message])
-            return response.content.strip() 
+            response = self.llm.predict(final_prompt)
+            return response.strip() 
         except Exception as e:
-            logger.error(f"Lỗi nghiêm trọng trong _analyze_logic_handler: {e}")
-            return f"Đã có lỗi xảy ra trong quá trình phân tích: {e}"
+            logger.error(f"Lỗi thực thi Tool: {e}")
+            return f"Đã có lỗi xảy ra: {e}"
 
-    # --- Định nghĩa Tools (Phương thức Abstract) ---
     def _get_tools(self) -> List[BaseTool]:
-        logger.info(f"[{self.__class__.__name__}]: Cung cấp tools...")
-        tool_1 = Tool(
-            name="analyze_part3_problem_tool", 
-            func=self.__analyze_logic_handler,
-            description="Analyzes the 'problem_context' to provide the final answer, including internal validation."
-        )
-        return [tool_1]
+        """Cung cấp danh sách công cụ."""
+        return [
+            Tool(
+                name="analyze_part3_problem_tool", 
+                func=self.__analyze_logic_handler,
+                description="Analyzes Part 3 context (Transcript + Q&A) to provide answers."
+            )
+        ]
 
     def _get_prompt(self) -> BasePromptTemplate:
+        """Cung cấp Template ReAct."""
         return PromptTemplate.from_template(REACT_TEMPLATE_P3)
-    
-    async def ainvoke(self, inputs: dict) -> dict:
-        """Minimal async interface, gọi thẳng Tool Handler để lấy output."""
-        question = inputs.get("input", "")
-        result = self.__analyze_logic_handler(question)
-        return {"output": result}
 
 
 async def main():
