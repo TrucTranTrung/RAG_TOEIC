@@ -4,18 +4,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langchain_core.prompts import BasePromptTemplate
-try:
-    from langchain.agents import create_agent
-    _HAS_CREATE_AGENT = True
-except Exception:
-    # Newer/older langchain versions may not provide `create_agent`.
-    # Fall back to `initialize_agent` if available and mark flag.
-    try:
-        from langchain.agents import initialize_agent
-        _HAS_CREATE_AGENT = False
-    except Exception:
-        # Keep original import error for clearer diagnostics downstream
-        raise
+from langchain.agents import create_agent
 from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
 import logging
@@ -84,23 +73,16 @@ class BaseAgent(ABC):
             system_message = "You are a helpful AI assistant."
 
         # 3. Create LangGraph agent with system message (using LangChain 1.0.1)
-        logger.info(f"Creating agent (create_agent or initialize_agent)...")
+        logger.info(f"Creating LangGraph agent with create_agent...")
 
         try:
-            if _HAS_CREATE_AGENT:
-                self.executor = create_agent(
-                    model=self.model,
-                    tools=self.tools,
-                    system_prompt=system_message,
-                )
-                logger.info(
-                    f"Agent {self.__class__.__name__} built successfully with create_agent.")
-            else:
-                # initialize_agent signature differs: tools first, then model/llm.
-                # We call it as a best-effort fallback.
-                self.executor = initialize_agent(self.tools, self.model, verbose=False)
-                logger.info(
-                    f"Agent {self.__class__.__name__} built successfully with initialize_agent fallback.")
+            self.executor = create_agent(
+                model=self.model,
+                tools=self.tools,
+                system_prompt=system_message
+            )
+            logger.info(
+                f"Agent {self.__class__.__name__} built successfully with LangGraph.")
         except Exception as e:
             logger.error(f"Failed to create agent: {e}")
             raise RuntimeError(f"Agent creation failed: {e}") from e
