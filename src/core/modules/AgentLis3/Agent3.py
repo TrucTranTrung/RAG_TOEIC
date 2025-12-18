@@ -29,12 +29,6 @@ class TOEICPart3Agent(BaseAgent):
     Agent chuyên biệt cho TOEIC Part 3.
     Thừa kế hoàn toàn từ BaseAgent.
     """
-    def __init__(self, model: BaseChatModel):
-        logger.info(f"[{self.__class__.__name__}]: Khởi tạo...")
-        warnings.filterwarnings("ignore")
-        self.llm = model
-        super().__init__(llm=self.llm)
-
     def __analyze_logic_handler(self, tool_input: str) -> str:
         """Logic cốt lõi của Tool: Validate -> Gọi LLM -> Trả kết quả."""
         logger.info(f"\n[Tool Called]: analyze_part3_problem_tool")
