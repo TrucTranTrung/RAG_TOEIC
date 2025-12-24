@@ -1,18 +1,14 @@
 import os
 import re
 import logging
-import assemblyai as aai
 import librosa
 import numpy as np
 from dotenv import load_dotenv
 from .prompts import PITCH_THRESHOLD 
 
+
 logger = logging.getLogger(__name__)
 
-load_dotenv(dotenv_path="config/.env")
-ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
-if ASSEMBLYAI_API_KEY:
-    aai.settings.api_key = ASSEMBLYAI_API_KEY
 
 def get_mean_f0(audio_file, start_ms, end_ms):
     """Tính Tần số Cơ bản (F0) trung bình của đoạn âm thanh."""
@@ -30,47 +26,50 @@ def get_mean_f0(audio_file, start_ms, end_ms):
         logger.error(f"Lỗi Librosa: {e}")
         return 0.0
 
-def process_and_label_gender(audio_path):
-    """Xử lý Diarization và gán nhãn giới tính [M]/[F]."""
-    if not ASSEMBLYAI_API_KEY:
-         return "LỖI CẤU HÌNH: AssemblyAI API Key không được tìm thấy."
-         
-    transcriber = aai.Transcriber()
-    config = aai.TranscriptionConfig(speaker_labels=True)
+def label_transcript_gender(transcript, audio_path: str) -> str:
+    """
+    Dựa trên transcript thô, tính toán F0 để gán nhãn [M] hoặc [F] cho từng người nói.
+    """
+    # Nếu đầu vào là thông báo lỗi từ bước trước, trả về luôn
+    if isinstance(transcript, str): return transcript
+    if not transcript.utterances: return "LỖI: Không tìm thấy nội dung hội thoại."
+
+    # --- BƯỚC 1: XÁC ĐỊNH GIỚI TÍNH CỦA NGƯỜI NÓI ĐẦU TIÊN ---
+    first_utterance = transcript.utterances[0]
+    speaker_id = first_utterance.speaker
     
-    try:
-        transcript = transcriber.transcribe(audio_path, config=config)
-    except Exception as e:
-        return f"LỖI KẾT NỐI/UPLOAD AAI: {e}"
+    # Tính tần số trung bình (F0) của đoạn hội thoại đầu tiên
+    mean_f0 = get_mean_f0(audio_path, first_utterance.start, first_utterance.end)
+    
+    # Gán nhãn dựa trên ngưỡng Pitch (PITCH_THRESHOLD)
+    # < 160Hz là Nam [M], ngược lại là Nữ [F]
+    is_male = (0 < mean_f0 < PITCH_THRESHOLD)
+    primary_label = "[M]" if is_male else "[F]"
+    secondary_label = "[F]" if is_male else "[M]"
+    gender_map = {speaker_id: primary_label}
+    
+    # --- BƯỚC 2: DUYỆT VÀ GHÉP NỘI DUNG HỘI THOẠI ---
+    formatted_lines = []
+    last_speaker = None
 
-    if transcript.status == aai.TranscriptStatus.error or not transcript.utterances:
-        return f"LỖẼ XỬ LÝ AAI: {transcript.error if transcript.status == aai.TranscriptStatus.error else 'Transcript rỗng'}"
+    for ut in transcript.utterances:
+        # Nếu gặp speaker mới chưa có trong map, gán nhãn đối lập với speaker đầu tiên
+        if ut.speaker not in gender_map:
+            gender_map[ut.speaker] = secondary_label
+            
+        current_label = gender_map[ut.speaker]
+        clean_text = ut.text.strip()
 
-    first_u = transcript.utterances[0]
-    speaker_a_id = first_u.speaker
-    mean_f0_a = get_mean_f0(audio_path, first_u.start, first_u.end)
-    gender_a_label = "[M]" if mean_f0_a < PITCH_THRESHOLD and mean_f0_a > 0 else "[F]" 
-
-    if gender_a_label == "[M]":
-        gender_map = {speaker_a_id: "[M]", "B": "[F]"} 
-    else:
-        gender_map = {speaker_a_id: "[F]", "B": "[M]"}
-        
-    logger.info(f"DEBUG: Speaker {speaker_a_id} F0: {mean_f0_a:.2f} Hz -> Nhãn: {gender_map.get(speaker_a_id)}")
-
-    final_labeled_transcript = ""
-    previous_speaker = None
-    for utterance in transcript.utterances:
-        current_speaker_id = utterance.speaker
-        gender_label = gender_map.get(current_speaker_id, "[?]")
-        
-        if current_speaker_id != previous_speaker:
-            final_labeled_transcript += f"\n{gender_label} {utterance.text.strip()}"
+        if ut.speaker != last_speaker:
+            # Nếu đổi người nói: Xuống dòng và thêm nhãn [M]/[F]
+            formatted_lines.append(f"\n{current_label} {clean_text}")
         else:
-            final_labeled_transcript += f" {utterance.text.strip()}"
-        previous_speaker = current_speaker_id
+            # Nếu cùng một người nói tiếp: Chỉ ghép thêm text vào dòng cũ
+            formatted_lines.append(f" {clean_text}")
+            
+        last_speaker = ut.speaker
 
-    return final_labeled_transcript.strip()
+    return "".join(formatted_lines).strip()
 
 
 def pre_validate_part3_context(problem_context: str) -> str:
@@ -83,3 +82,16 @@ def pre_validate_part3_context(problem_context: str) -> str:
         return "1"  
     else:
         return "Bạn cung cấp không đủ đáp án (A)(B)(C)(D) hoặc sai định dạng."
+
+def extract_text(result) -> str:
+        try:
+            return result["output"][0]["text"].strip()
+        except Exception:
+           return ""
+
+def format_answer_only(text: str) -> str:
+        lines = text.splitlines()
+        for i, line in enumerate(lines):
+            if line.strip().startswith("Đáp án:"):
+                return "\n".join(lines[i:]).strip()
+        return text.strip()
