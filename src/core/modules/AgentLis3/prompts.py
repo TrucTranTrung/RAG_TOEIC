@@ -1,7 +1,6 @@
 PITCH_THRESHOLD = 170 
 
 # --- PROMPT VÀ TEMPLATE CHO LLM ---
-
 ANALYSIS_PROMPT_TEXT_P3 = """
 You are a precise TOEIC Part 3 analyst. Your task is to analyze the given data (labeled with [M]: Male / Man [F]: Female / Woman for gender) and provide a detailed explanation in VIETNAMESE.
 
