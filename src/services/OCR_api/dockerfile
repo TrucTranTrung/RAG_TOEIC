@@ -8,7 +8,7 @@ COPY requirements.txt .
 RUN python -m pip install -U pip \
  && python -m pip install -r requirements.txt \
  && python -m pip install \
- https://paddle-whl.bj.bcebos.com/nightly/cu129/safetensors/safetensors-0.6.2.dev0-cp38-abi3-linux_x86_64.whl
+ paddleocr
 
 EXPOSE 8501
 

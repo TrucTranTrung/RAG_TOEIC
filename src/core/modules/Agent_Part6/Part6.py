@@ -47,7 +47,7 @@ def vocab_search(word: str, full: bool = False) -> dict:
                 "definition": d.get("definition"),
                 "example": d.get("example")
             })
-
+        print("check call")
         return {
             "word": word,
             "meanings": results
@@ -59,6 +59,10 @@ def vocab_search(word: str, full: bool = False) -> dict:
             "meanings": [],
             "error": "Definition not found"
         }
+    
+@tool
+def Summarize(word: str, full: bool = False) -> dict:
+    return 0
 
 # --- ĐỊNH NGHĨA CÁC CLASS AGENT (SỬ DỤNG GEMINI API) ---
 class LanguageAgentPart6(BaseAgent):

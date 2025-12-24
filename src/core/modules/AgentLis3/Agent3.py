@@ -48,6 +48,7 @@ class TOEICPart3Agent(BaseAgent):
 
     def _get_tools(self) -> List[BaseTool]:
         """Cung cấp danh sách công cụ."""
+
         return [
             Tool(
                 name="analyze_part3_problem_tool", 
@@ -57,7 +58,7 @@ class TOEICPart3Agent(BaseAgent):
         ]
 
     def _get_prompt(self) -> BasePromptTemplate:
-        """Cung cấp Template ReAct."""
+        """Cung cấp Template prompt ReAct."""
         return PromptTemplate.from_template(REACT_TEMPLATE_P3)
 
 
