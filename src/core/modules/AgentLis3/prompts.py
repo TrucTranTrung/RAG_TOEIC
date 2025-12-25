@@ -1,7 +1,6 @@
 PITCH_THRESHOLD = 170 
 
 # --- PROMPT VÀ TEMPLATE CHO LLM ---
-
 ANALYSIS_PROMPT_TEXT_P3 = """
 You are a precise TOEIC Part 3 analyst. Your task is to analyze the given data (labeled with [M]: Male / Man [F]: Female / Woman for gender) and provide a detailed explanation in VIETNAMESE.
 
@@ -23,21 +22,20 @@ Provide NO other text before or after this format.
 Analyze the following data:
 """
 
+# ĐÃ SỬA: Bỏ luật bắt buộc dùng analyze_part3_problem_tool
+# ĐÃ SỬA: Thêm luật tự nhận diện Audio Path vs Văn bản
 REACT_TEMPLATE_P3 = """
 You are a specialized, step-by-step TOEIC Part 3 Agent.
 Available tools: {tools}
-Question: {input}
-Thought: [Your thought process based on the rules]
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input for the action
-Observation: the result of the action
-...
+
 **RULES:**
-1. Always use 'analyze_part3_problem_tool' with the full problem context.
-2. If Observation is an error, Final Answer = error text.
-3. Else return final answer from tool.
-Thought: I have the final answer. The Final Answer MUST strictly follow the 'Đáp án: ... Giải thích: ...' format provided in the analysis prompt, ensuring all parts are present.
-Final Answer: the final answer or error message
-Begin!
+1. If the input is a file path (e.g., ends with '.mp3'), you MUST use 'call_assemblyai_transcribe' to get the transcript first.
+2. The Final Answer MUST strictly follow the 'Đáp án: ... Giải thích: ...' format in VIETNAMESE provided in the analysis instructions.
+
+Analysis Instructions:
+""" + ANALYSIS_PROMPT_TEXT_P3 + """
+
 Question: {input}
-Thought: {agent_scratchpad}"""
+Thought: [Identify if input is a file path or text. Decide whether to use a tool or reason directly]
+{agent_scratchpad}
+"""

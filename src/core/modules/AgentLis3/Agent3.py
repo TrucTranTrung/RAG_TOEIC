@@ -2,87 +2,93 @@ import os
 import sys
 import asyncio
 import logging
-
+import assemblyai as aai
 from dotenv import load_dotenv
 from typing import List
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import BasePromptTemplate, PromptTemplate
-from langchain_core.tools import BaseTool, Tool
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import tool
 
+# --- 1. XỬ LÝ PATH ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODULES_DIR = os.path.dirname(SCRIPT_DIR)
 if MODULES_DIR not in sys.path:
     sys.path.insert(0, MODULES_DIR)
 
 from Agent_Base.Agent import BaseAgent
-from AgentLis3.utils import process_and_label_gender, pre_validate_part3_context
+from AgentLis3.utils import label_transcript_gender, pre_validate_part3_context, extract_text,format_answer_only
 from AgentLis3.prompts import ANALYSIS_PROMPT_TEXT_P3, REACT_TEMPLATE_P3
 
-# Cấu hình
+# --- 2. CẤU HÌNH LOGGING & ENV ---
+load_dotenv(dotenv_path="../../../config/.env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-load_dotenv(dotenv_path="config/.env")
 
+ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
+print(ASSEMBLYAI_API_KEY)
+if ASSEMBLYAI_API_KEY:
+    aai.settings.api_key = ASSEMBLYAI_API_KEY
+
+# --- 3. ĐỊNH NGHĨA TOOLS ---
+@tool
+def call_assemblyai_transcribe(audio_path: str):
+    """
+    Dùng công cụ này khi đầu vào là một đường dẫn file âm thanh (ví dụ: .mp3).
+    Nó sẽ chuyển đổi âm thanh thành văn bản và gán nhãn giới tính [M]/[F] cho người nói.
+    """
+    if not ASSEMBLYAI_API_KEY:
+        return "LỖI: Chưa cấu hình API Key cho AssemblyAI."
+    
+    transcriber = aai.Transcriber()
+    config = aai.TranscriptionConfig(speaker_labels=True)
+    try:
+        # Agent sẽ tự động gọi bước này khi nó thấy input là file path
+        logger.info(f"--- [Agent Action]: Đang sử dụng Tool để transcribe file: {audio_path} ---")
+        raw_obj = transcriber.transcribe(audio_path, config=config)
+        
+        # Gán nhãn giới tính ngay trong tool để cung cấp dữ liệu sạch cho Agent suy luận
+        labeled_text = label_transcript_gender(raw_obj, audio_path)
+        return labeled_text
+    except Exception as e:
+        return f"LỖI KẾT NỐI: {str(e)}"
+
+# --- 4. ĐỊNH NGHĨA AGENT CLASS ---
 class TOEICPart3Agent(BaseAgent):
-    """
-    Agent chuyên biệt cho TOEIC Part 3.
-    Thừa kế hoàn toàn từ BaseAgent.
-    """
-    def __analyze_logic_handler(self, tool_input: str) -> str:
-        """Logic cốt lõi của Tool: Validate -> Gọi LLM -> Trả kết quả."""
-        logger.info(f"\n[Tool Called]: analyze_part3_problem_tool")
+    def _get_tools(self) -> List:
+        return [call_assemblyai_transcribe]
 
-        # 1. Kiểm tra định dạng (A, B, C, D)
-        validation = pre_validate_part3_context(tool_input)
-        if validation != "1":
-            return validation
+    def _get_prompt(self) -> PromptTemplate:
+        full_content = ANALYSIS_PROMPT_TEXT_P3 + "\n" + REACT_TEMPLATE_P3
+        return PromptTemplate.from_template(full_content)
 
-        # 2. Xử lý logic qua LLM (Sử dụng llm từ lớp cha BaseAgent)
-        try:
-            final_prompt = ANALYSIS_PROMPT_TEXT_P3 + f"\n{tool_input}"
-            response = self.llm.predict(final_prompt)
-            return response.strip() 
-        except Exception as e:
-            logger.error(f"Lỗi thực thi Tool: {e}")
-            return f"Đã có lỗi xảy ra: {e}"
-
-    def _get_tools(self) -> List[BaseTool]:
-        """Cung cấp danh sách công cụ."""
-
-        return [
-            Tool(
-                name="analyze_part3_problem_tool", 
-                func=self.__analyze_logic_handler,
-                description="Analyzes Part 3 context (Transcript + Q&A) to provide answers."
-            )
-        ]
-
-    def _get_prompt(self) -> BasePromptTemplate:
-        """Cung cấp Template prompt ReAct."""
-        return PromptTemplate.from_template(REACT_TEMPLATE_P3)
-
-
+# --- 5. HÀM CHẠY CHÍNH ---
 async def main():
-    # 1. Khởi tạo Model
-    openai_api_key = os.environ.get("openai_api_key")
-    if not openai_api_key:
+    """Hàm chạy chính (bất đồng bộ) để test agent."""
+
+    # --- Initialize Gemini 2.5 Flash Model ---
+    logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
+
+    google_api_key = os.environ.get("GOOGLE_API_KEY")
+    if not google_api_key:
         print("="*50)
-        print("LỖI: Vui lòng đặt biến môi trường openai_api_key để chạy ví dụ này.")
+        print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY.")
         print("="*50)
         return
 
     try:
-        model = ChatOpenAI(
-            model="gpt-4o-mini",   # hoặc gpt-4.1 / gpt-4o
-            api_key=openai_api_key,
-            temperature=0.2
+        model = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            api_key=google_api_key,
+            convert_system_message_to_human=True,
+            temperature=0.2,
+            max_retries=0
         )
     except Exception as e:
-        logger.error(f"Không thể khởi tạo Gemini model: {e}")
+        logger.error(f"Lỗi khởi tạo model: {e}")
         return
 
-    # 2. Dữ liệu Input & Đường dẫn Audio
-    AUDIO_FILE_PATH_TEST = "/home/daniel/Documents/RAG_TOEIC/src/core/modules/data_test/6KXxh.mp3" 
+    # --- CONTEXT ---
+    AUDIO_FILE_PATH_TEST = "/home/daniel/Documents/RAG_TOEIC/src/core/modules/data_test/Ld1lt.mp3"
     #AUDIO_FILE_PATH_TEST = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\6KXxh.mp3"
 
     # CONTEXT_OK = """
@@ -94,64 +100,54 @@ async def main():
     # """
 
     CONTEXT_OK = """
-    Question: What does the woman say about her phone service?
+    What does the woman say about her phone service?
     A. She is unhappy with Z Mobile's service.
     B. She pays a monthly fee of 70 dollars.
     C. She gets 700 unlimited minutes with everyone.
-    D. She recently moved to Canada for free calls.
-    """
+    D. She recently moved to Canada for free calls."""
+
     CONTEXT_NONE_CORRECT = """
-    Q: Who has recorded the message?
+    Who has recorded the message?
     (A) A tenant who is locked out
     (B) A parking garage security guard
     (C) A tow truck company dispatcher
-    (D) A local post office worker
-    """
+    (D) A local post office worker"""
+
     CONTEXT_INVALID = """
-    Q: How old is this building?
+    How old is this building?
     (A) To transport some materials.
     (B) About ten years old.
-    (C) I think it's the company office.
-    """
+    (C) I think it's the company office."""
 
-    # 3. Tiền xử lý Audio (Sử dụng hàm từ utils)
-    logger.info("\n" + "="*80)
-    logger.info("--- BƯỚC 1: TIỀN XỬ LÝ AUDIO ĐỂ LẤY TRANSCRIPT ---")
-    
-    if not os.path.exists(AUDIO_FILE_PATH_TEST):
-        labeled_transcript = f"LỖI: Không tìm thấy file âm thanh tại đường dẫn: {AUDIO_FILE_PATH_TEST}"
-    else:
-        labeled_transcript = process_and_label_gender(AUDIO_FILE_PATH_TEST)
-    
-    if labeled_transcript.startswith("LỖI"):
-        print(f"LỖI NGHIÊM TRỌNG TRONG TIỀN XỬ LÝ AUDIO: {labeled_transcript}")
-        return
-
-    # 4. Chuẩn bị Contexts và Khởi tạo Agent
-    full_context_ok = f"{labeled_transcript}\n{CONTEXT_OK}"
-    full_context_none_correct = f"{labeled_transcript}\n{CONTEXT_NONE_CORRECT}"
-    full_context_invalid = f"{labeled_transcript}\n{CONTEXT_INVALID}"
-    
     agent_instance = TOEICPart3Agent(model=model)
-    
-    
-    logger.info("\n" + "="*80)
-    logger.info("--- CHẠY KỊCH BẢN 1 (HỢP LỆ) ---")
-    result1 = await agent_instance.ainvoke({"input": full_context_ok})
-    print("\n--- KẾT QUẢ CUỐI CÙNG (KỊCH BẢN 1) ---")
-    print(result1["output"].strip())
 
-    logger.info("\n" + "="*80)
-    logger.info("--- CHẠY KỊCH BẢN 2 (KHÔNG CÓ CÂU ĐÚNG) ---")
-    result2 = await agent_instance.ainvoke({"input": full_context_none_correct})
-    print("\n--- KẾT QUẢ CUỐI CÙNG (KỊCH BẢN 2) ---")
-    print(result2["output"].strip())
-    
-    logger.info("\n" + "="*80)
-    logger.info("--- CHẠY KỊCH BẢN 3 (KHÔNG HỢP LỆ) ---")
-    result3 = await agent_instance.ainvoke({"input": full_context_invalid})
-    print("\n--- KẾT QUẢ CUỐI CÙNG (KỊCH BẢN 3) ---")
-    print(result3["output"].strip())
+    # --- CHẠY CÁC KỊCH BẢN ---
+    scenarios = [
+        ("KỊCH BẢN 1 (HỢP LỆ)", CONTEXT_OK),
+        ("KỊCH BẢN 2 (KHÔNG CÂU ĐÚNG)", CONTEXT_NONE_CORRECT),
+        ("KỊCH BẢN 3 (KHÔNG HỢP LỆ)", CONTEXT_INVALID),
+    ]
+
+    for name, context in scenarios:
+        logger.info("\n" + "=" * 80)
+        logger.info(f"--- ĐANG CHẠY: {name} ---")
+
+        validate_result = pre_validate_part3_context(context)
+        if validate_result != "1":
+            print(f"\n--- KẾT QUẢ {name} ---")
+            print(validate_result)
+            continue
+
+
+        input_data = f"Audio file: {AUDIO_FILE_PATH_TEST}\nProblem: {context}"
+        res = await agent_instance.ainvoke({"input": input_data})
+
+        output = format_answer_only(extract_text(res))
+
+        print(f"\n--- KẾT QUẢ {name} ---")
+        print(output)
+
+    print("\n" + "=" * 80 + "\n--- CHƯƠNG TRÌNH HOÀN TẤT ---")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -7,7 +7,7 @@ from random import sample
 from typing import List, Dict, Optional, Tuple
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain_core.tools import BaseTool, tool
+from langchain_core.tools import tool, BaseTool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 
 from ..Agent_Base import BaseAgent
@@ -95,7 +95,7 @@ async def main():
     # --- Initialize Gemini 2.5 Flash Model ---
     logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
 
-    openai_api_key = os.environ.get("openai_api_key")
+    openai_api_key = os.envziron.get("openai_api_key")
     if not openai_api_key:
         print("="*50)
         print("LỖI: Vui lòng đặt biến môi trường openai_api_key để chạy ví dụ này.")
