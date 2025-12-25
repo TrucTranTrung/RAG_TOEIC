@@ -22,8 +22,10 @@ load_dotenv(dotenv_path="config/.env")
 
 @tool
 def vocab_search(word: str, full: bool = False) -> dict:
-
-    """Searches for vocabulary definitions from an online dictionary API."""
+    """
+    Searches for vocabulary definitions from an online dictionary API.
+    Returns definitions and examples.
+    """
 
     url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
     try:
@@ -47,7 +49,7 @@ def vocab_search(word: str, full: bool = False) -> dict:
                 "definition": d.get("definition"),
                 "example": d.get("example")
             })
-        print("check call")
+
         return {
             "word": word,
             "meanings": results
@@ -60,9 +62,9 @@ def vocab_search(word: str, full: bool = False) -> dict:
             "error": "Definition not found"
         }
     
-@tool
-def Summarize(word: str, full: bool = False) -> dict:
-    return 0
+# @tool
+# def Summarize(word: str, full: bool = False) -> dict:
+#     return 0
 
 # --- ĐỊNH NGHĨA CÁC CLASS AGENT (SỬ DỤNG GEMINI API) ---
 class LanguageAgentPart6(BaseAgent):
@@ -120,15 +122,21 @@ async def main():
     print("\n--- Bắt đầu chạy ReadingAgent (Async) ---")
 
     # --- DỮ LIỆU VÍ DỤ PART 6 ---
-    PART_6_PASSAGE = """
-    The annual departmental retreat will be held next month. Please check the attachment for the detailed schedule.
-    We hope everyone _______ this important team-building event.
-    (A) attends
-    (B) attending
-    (C) to attend
-    (D) attendance
-    Could you choose the correct answer and explain why?
-    """
+    # PART_6_PASSAGE = """
+    # The annual departmental retreat will be held next month. Please check the attachment for the detailed schedule.
+    # We hope everyone _______ this important team-building event.
+    # (A) attends
+    # (B) attending
+    # (C) to attend
+    # (D) attendance
+    # Could you choose the correct answer and explain why?
+    # """
+
+    PART_6_PASSAGE = """Due to the unexpected market shift, the initial projections were found to be overly _______.
+    (A) supercalifragilisticexpialidocious
+    (B) Anachronism
+    (C) parasocial
+    (D) Flabbergasted"""
     s = clean_and_extract_passage_simple(PART_6_PASSAGE)
     # print(f"Test input: {s}")
     try:
