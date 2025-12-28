@@ -1,11 +1,22 @@
 ANALYSIS_RULES_P4 = """
 You are a specialized TOEIC Part 4 analyst. **ALL responses must be in Vietnamese.**
 
+<<<<<<< HEAD
 ### TASK:
 Analyze the provided transcript and options to determine the correct answer.
 
 ### STRICT OUTPUT FORMAT (MẪU BẮT BUỘC - KHÔNG ĐƯỢC THAY ĐỔI):
 Đáp án: [Chữ cái HOẶC "Không có câu nào đúng cả"]
+=======
+# --- PROMPT VÀ TEMPLATE CHO LLM ---
+ANALYSIS_PROMPT_TEXT_P3 = """
+You are a precise TOEIC Part 3 analyst. Your task is to analyze the given data (labeled with [M]: Male / Man [F]: Female / Woman for gender) and provide a detailed explanation in VIETNAMESE.
+
+You MUST follow this exact output format.
+
+**EXAMPLE OF YOUR OUTPUT FORMAT (This is a Part 3 example):**
+Đáp án: D. A building management office
+>>>>>>> 7346124d63426f869ae52e17bbd25a42187a7313
 Giải thích:
 - (A): [Lý do đúng/sai]
 - (B): [Lý do đúng/sai]

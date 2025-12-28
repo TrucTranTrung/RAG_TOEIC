@@ -20,11 +20,12 @@ from AgentLis3.utils import label_transcript_gender, pre_validate_part3_context,
 from AgentLis3.prompts import ANALYSIS_PROMPT_TEXT_P3, REACT_TEMPLATE_P3
 
 # --- 2. CẤU HÌNH LOGGING & ENV ---
-load_dotenv(dotenv_path="config/.env")
+load_dotenv(dotenv_path="../../../config/.env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
+print(ASSEMBLYAI_API_KEY)
 if ASSEMBLYAI_API_KEY:
     aai.settings.api_key = ASSEMBLYAI_API_KEY
 
@@ -87,7 +88,7 @@ async def main():
         return
 
     # --- CONTEXT ---
-    AUDIO_FILE_PATH_TEST = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\Ld1lt.mp3"
+    AUDIO_FILE_PATH_TEST = "/home/daniel/Documents/RAG_TOEIC/src/core/modules/data_test/Ld1lt.mp3"
     #AUDIO_FILE_PATH_TEST = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\6KXxh.mp3"
 
     # CONTEXT_OK = """
