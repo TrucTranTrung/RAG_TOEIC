@@ -1,5 +1,0 @@
-paddleocr[doc-parser]
-fastapi
-uvicorn
-pydantic
-python-multipart

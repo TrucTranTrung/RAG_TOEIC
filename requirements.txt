@@ -117,3 +117,12 @@ yarl==1.22.0
 zstandard==0.25.0
 assemblyai==0.48.3
 librosa==0.10.0
+transformers==4.57.3
+torch==2.9.1
+accelerate
+Unsloth==2025.12.9
+einops==0.8.1
+easydict==1.13
+load_dotenv
+langchain_huggingface==1.2.0
+langchain-mistralai==1.1.1

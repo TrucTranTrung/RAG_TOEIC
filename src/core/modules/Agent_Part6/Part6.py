@@ -1,23 +1,19 @@
 import requests
 import logging
 import asyncio
-import os
 
 from random import sample
 from typing import List, Dict, Optional, Tuple
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool, BaseTool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 
 from ..Agent_Base import BaseAgent
 from .utils import clean_and_extract_passage_simple
 from .prompts import prompt_string
+from .models import llm_mistral, tok, model
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-load_dotenv(dotenv_path="config/.env")
 
 
 @tool
@@ -49,7 +45,7 @@ def vocab_search(word: str, full: bool = False) -> dict:
                 "definition": d.get("definition"),
                 "example": d.get("example")
             })
-
+        # print(word, results)
         return {
             "word": word,
             "meanings": results
@@ -62,19 +58,33 @@ def vocab_search(word: str, full: bool = False) -> dict:
             "error": "Definition not found"
         }
     
-# @tool
+@tool
 # def Summarize(word: str, full: bool = False) -> dict:
-#     return 0
+def summarize(text: str, max_len=60) -> str:
+    """ 
+       this is a text summarization tool given a text input, it returns a summarized version of the text
+    """
+    inp = "summarize: " + text
+    ids = tok.encode(inp, return_tensors="pt", truncation=True)
+    out = model.generate(
+        ids,
+        max_length=max_len,
+        min_length=20,
+        num_beams=4,
+        length_penalty=1.5,
+        early_stopping=True
+    )
+    return tok.decode(out[0], skip_special_tokens=True)
 
-# --- ĐỊNH NGHĨA CÁC CLASS AGENT (SỬ DỤNG GEMINI API) ---
+# --- ĐỊNH NGHĨA CÁC CLASS AGENT ---
 class LanguageAgentPart6(BaseAgent):
     """Agent này dùng để sử lí part6 để chọn từ thích hợp điền vào chỗ trống trong đoạn văn"""
     def _get_tools(self) -> List[BaseTool]:
         """
         Cung cấp danh sách các tools CHUYÊN BIỆT cho Reading Part 6.
         """
-        logger.info("ReadingAgent: Cung cấp tools [vocab_search]")
-        return [vocab_search]
+        logger.info("ReadingAgent: Cung cấp tools [vocab_search, summarize]")
+        return [vocab_search, summarize]
 
 
     def _get_prompt(self) -> BasePromptTemplate:
@@ -88,64 +98,32 @@ class LanguageAgentPart6(BaseAgent):
 
 # --- CHẠY DEMO ĐA TOOL/AGENT (TÍCH HỢP) ---
 async def main():
-    # print(vocab_search("address"))
-    # print(vocab_search("anxiety"))
     """Hàm chạy chính (bất đồng bộ) để test agent."""
 
-    # --- Initialize Gemini 2.5 Flash Model ---
-    logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
+    # --- Initialize Qwen3 Flash Model ---
+    logger.info("--- Khởi tạo Qwen3 Flash Model ---")
 
-    openai_api_key = os.envziron.get("openai_api_key")
-    if not openai_api_key:
-        print("="*50)
-        print("LỖI: Vui lòng đặt biến môi trường openai_api_key để chạy ví dụ này.")
-        print("Lệnh (Terminal/PowerShell): set openai_api_key=YOUR_API_KEY_HERE")
-        print("="*50)
-        return
-
-    try:
-        model = ChatOpenAI(
-            model="gpt-4o-mini",   # hoặc gpt-4.1 / gpt-4o
-            api_key=openai_api_key,
-            temperature=0.2
-        )
-    except Exception as e:
-        logger.error(f"Không thể khởi tạo Gemini model: {e}")
-        return
+    PART_6_PASSAGE = """For your protection, we suggest you ship via UPS. A replacement will be made and if the shoe style you returned is not available, a comparable style will be substituted. We guarantee to match the quality of the shoes you used to _______.
+    A. wear
+    B. wearing
+    C. worn
+    D. be worn"""
+    s = clean_and_extract_passage_simple(PART_6_PASSAGE)
+    # print(s)
 
     # --- Initialize ReadingAgent with Model ---
     print("\n--- Khởi tạo ReadingAgent với Model ---")
-
-    # Pass model to BaseAgent 
-    reading_agent = LanguageAgentPart6(model=model)
+    reading_agent = LanguageAgentPart6(model=llm_mistral)  # Pass the pre-loaded model
 
     print("\n--- Bắt đầu chạy ReadingAgent (Async) ---")
 
-    # --- DỮ LIỆU VÍ DỤ PART 6 ---
-    # PART_6_PASSAGE = """
-    # The annual departmental retreat will be held next month. Please check the attachment for the detailed schedule.
-    # We hope everyone _______ this important team-building event.
-    # (A) attends
-    # (B) attending
-    # (C) to attend
-    # (D) attendance
-    # Could you choose the correct answer and explain why?
-    # """
-
-    PART_6_PASSAGE = """Due to the unexpected market shift, the initial projections were found to be overly _______.
-    (A) supercalifragilisticexpialidocious
-    (B) Anachronism
-    (C) parasocial
-    (D) Flabbergasted"""
-    s = clean_and_extract_passage_simple(PART_6_PASSAGE)
-    # print(f"Test input: {s}")
     try:
         # Sử dụng .ainvoke() (bất đồng bộ) vì đây là API call thật
         result = await reading_agent.ainvoke({
             "input": s
         })
 
-        print("\n--- Kết quả từ ReadingAgent (Gemini) ---")
+        print("\n--- Kết quả từ ReadingAgent (Qwen) ---")
         print(f"Câu trả lời cuối cùng: {result['output']}")
 
     except Exception as e:

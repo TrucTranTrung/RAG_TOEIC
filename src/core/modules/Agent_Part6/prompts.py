@@ -6,29 +6,24 @@ prompt_string = """
         1. You should answer in VIETNAMESE.
         2. You Must call vocab_search to get all definition and example sentences for each words in answer, don't answer directly.
         3. For each question, you must provide:
-           - The correct answer (A, B, C, or D).
+           - If none, return "Không có đáp án đúng" and explain.
+           - The correct answer if have any (A, B, C, or D).
            - A FULL but CONCISE explanation in VIETNAMESE for why that answer is correct (2–4 sentences, max 80 words).
            - A BRIEF reason for each incorrect answer (1 line each, max 20 words, focusing on grammar or meaning errors).
         4. If there are multiple questions, answer them in order.
 
         Final Answer:
-        Nếu không có đáp án đúng thì hãy trả lời tất cả đều sai.
+        
         Nếu có thì trả lời theo format sau:
-        **Đáp án đúng:** (X)
-        **Giải thích:** [Giải thích bằng tiếng Việt, giải thích đầy đủ chi tiết vì sao chọn đáp án đó đúng, dựa vào đâu trong câu hỏi để xác định]
-        **Lý do các đáp án sai:**
-        (A) ...
-        (B) ...
-        (C) ...
-        (D) ...
+        Đáp án đúng: (X)
+        Giải thích: [Giải thích bằng tiếng Việt, giải thích đầy đủ chi tiết vì sao chọn đáp án đó đúng, dựa vào đâu trong câu hỏi để xác định - có trích dẫn phần tiếng anh trong câu]
+        Lý do các đáp án sai:
+        (A) giải thích ngắn gọn
+        (B) giải thích ngắn gọn
+        (C) giải thích ngắn gọn
+        (D) giải thích ngắn gọn
 
         --- (Lặp lại cho từng câu hỏi) ---
-
-        Cuối cùng, tổng hợp lại ngắn gọn:
-        Final Summary:
-        <Liệt kê tất cả số câu và đáp án đúng, ví dụ:>
-        131: (A) — động từ chia đúng thì với chủ ngữ.
-        132: (C) — giới từ phù hợp ngữ cảnh.
 
         BẮT ĐẦU!
 
