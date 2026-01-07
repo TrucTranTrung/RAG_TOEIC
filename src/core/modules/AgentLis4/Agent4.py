@@ -18,7 +18,7 @@ if MODULES_DIR not in sys.path:
 
 from Agent_Base.Agent import BaseAgent 
 from utils import extract_text, format_answer_only, pre_validate_part4_context
-from prompts import TOEIC_REACT_SYSTEM_PROMPT_P4
+from prompts import TOEIC_REACT_SYSTEM_PROMPT_P4, ANALYSIS_PROMPT_TEXT_P4
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,16 +26,23 @@ load_dotenv(dotenv_path="config/.env")
 
 @tool
 def summarize_transcript_tool(transcript: str) -> str:
-    """Sử dụng khi người dùng yêu cầu tóm tắt nội dung bài nói."""
-    logger.info("--- [Tool Action]: Agent gọi Tool chuẩn bị tóm tắt ---")
-    return f"Đã nhận lệnh tóm tắt. Dữ liệu văn bản: {transcript[:100]}..."
+    """Sử dụng khi câu hỏi yêu cầu suy luận hoặc tìm ý chính."""
+    logger.info("Agent is calling summarize_transcript_tool")
+    return (
+        f"Dữ liệu bài nghe: {transcript}\n\n"
+        "Nhiệm vụ: Để trả lời câu hỏi suy luận này, bạn hãy thực hiện:\n"
+        "1. Tóm tắt nội dung theo cấu trúc: Đối tượng - Hành động - Thời gian/Địa điểm.\n"
+        "2. Tìm các 'từ khóa điều kiện' (ví dụ: 'if', 'unless', 'only', 'monitoring', 'closely').\n"
+        "3. Nếu đáp án không nằm trong tóm tắt hoặc ý chính, hãy quét lại dữ liệu gốc phía trên để tìm manh mối suy luận."
+    )
 
 class TOEICPart4Agent(BaseAgent):
     def _get_tools(self) -> List:
         return [summarize_transcript_tool]
 
     def _get_prompt(self) -> PromptTemplate:
-        return PromptTemplate.from_template(TOEIC_REACT_SYSTEM_PROMPT_P4)
+        full_template = TOEIC_REACT_SYSTEM_PROMPT_P4 + "\n\n" + ANALYSIS_PROMPT_TEXT_P4
+        return PromptTemplate.from_template(full_template)
 
 async def main():
     google_api_key = os.environ.get("GOOGLE_API_KEY")

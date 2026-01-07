@@ -32,7 +32,20 @@ def get_image_data_tool(image_path: str) -> str:
         clean_path = image_path.strip().strip("'").strip('"')
         if not os.path.exists(clean_path):
             return f"Lỗi: Không tìm thấy file tại {clean_path}"
-        return encode_image_to_base64(clean_path)
+        
+        base64_data = encode_image_to_base64(clean_path)
+        image_url = f"data:image/jpeg;base64,{base64_data}"
+        
+        print(f"\n>>> [KÍCH HOẠT TOOL ẢNH]: Đã nạp ảnh vào bộ nhớ của Gemini...")
+        
+        return (
+            f"Dữ liệu hình ảnh (Base64): {image_url}\n\n"
+            "HƯỚNG DẪN XỬ LÝ NGỮ NGHĨA:\n"
+            "1. Bạn hãy xem ảnh này để viết 'Image Transcript' chi tiết.\n"
+            "2. So sánh ảnh với Transcript được cung cấp.\n"
+            "3. TRƯỜNG HỢP ĐẶC BIỆT: Nếu sau khi xem ảnh, bạn thấy cả 4 đáp án (A,B,C,D) đều mô tả sai hành động/vật thể, "
+            "hãy ghi 'Đáp án: Không có câu nào đúng cả' và dùng dữ liệu ảnh để chứng minh tại sao chúng sai."
+        )
     except Exception as e:
         return f"Lỗi xử lý ảnh: {str(e)}"
 
@@ -45,10 +58,9 @@ class TOEICPart1Agent(BaseAgent):
         return PromptTemplate.from_template(TOEIC_REACT_SYSTEM_PROMPT)
 
 async def main():
-    logger.info("--- Khởi tạo Gemini 2.5 Flash Model ---")
+    logger.info("--- Khởi tạo Gemini Model ---")
     google_api_key = os.environ.get("GOOGLE_API_KEY")
     
-    # Để temperature cực thấp để tránh AI viết thêm lời dẫn thừa
     model = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash", 
         api_key=google_api_key,
@@ -72,23 +84,24 @@ async def main():
         logger.info("\n" + "=" * 80)
         logger.info(f"--- ĐANG CHẠY: {name} ---")
 
-        # 1. Validation nội bộ
         validate_result = pre_validate_part1_context(transcript)
         if validate_result != "1":
             print(f"\n--- KẾT QUẢ {name} ---")
             print(validate_result)
             continue
 
-        # 2. Chạy Agent
-        input_data = f"Image: {image1}, Transcript: {transcript}"
+        input_data = f"Sử dụng tool để lấy ảnh từ đường dẫn: {image1}. Sau đó đối chiếu với các lựa chọn: {transcript}"
+        
         try:
             res = await toeic_agent.ainvoke({"input": input_data})
             output = format_answer_only(extract_text(res))
+            
             print(f"\n--- KẾT QUẢ {name} ---")
-            print(output)
+            print(output if output else "Agent không trả về nội dung. Kiểm tra API hoặc Prompt.")
             
         except Exception as e:
             logger.error(f"Lỗi thực thi {name}: {e}")
+            
     print("\n" + "=" * 80 + "\n--- CHƯƠNG TRÌNH HOÀN TẤT ---")
 
 if __name__ == "__main__":
