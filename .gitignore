@@ -6,3 +6,5 @@ __pycache__/
 src/services/Faster_Whisper/models--Systran--faster-whisper-medium
 jenkins_data
 config/.env
+=*
+models
