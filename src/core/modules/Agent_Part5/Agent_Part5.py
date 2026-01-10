@@ -10,14 +10,17 @@ from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 
 # Import từ module base
 from ..Agent_Base import BaseAgent
-from .models import llm_mistral, tok, model
+
+from langchain_community.llms import LlamaCpp
+from ..Agent_Base.llm_wrapper import LlamaCppChatWrapper
+from pathlib import Path
 
 
 # Mock BaseAgent cho demo (trong thực tế sẽ import từ Agent_Base)
-# from abc import ABC, abstractmethod
-# from langchain_core.runnables import Runnable
-# from langchain_core.language_models.chat_models import BaseChatModel
-# from langchain.agents import create_agent
+from abc import ABC, abstractmethod
+from langchain_core.runnables import Runnable
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain.agents import create_agent
 
 
 # Import tools và utils
@@ -81,9 +84,84 @@ class LanguageAgentPart5(BaseAgent):
 # --- CHẠY DEMO ---
 async def main():
     """Hàm chạy chính (bất đồng bộ) để test agent."""
-    # --- Initialize LanguageAgentPart5 with Model ---
+
+    # --- Initialize OpenAI Model ---
+    # logger.info("--- Khởi tạo gemini-2.5-flash Model ---")
+
+    # google_api_key = os.environ.get("GOOGLE_API_KEY")
+    # if not google_api_key:
+    #     print("="*50)
+    #     print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
+    #     print("="*50)
+    #     return
+    logger.info("="*80)
+    logger.info("🚀 Khởi tạo Model cho Agent Part 5")
+    logger.info("="*80)
+    model = None
+    model_name = "Local LlamaCpp"
     try:
-        grammar_agent = LanguageAgentPart5(model=llm_mistral)
+
+        # Try multiple possible paths
+        possible_paths = [
+            "./models/toeic_qwen_q4.gguf",
+            "../../../../models/toeic_qwen_q4.gguf",
+            "models/toeic_qwen_q4.gguf"
+        ]
+
+        model_path = None
+        for path in possible_paths:
+            if Path(path).exists():
+                model_path = path
+                break
+
+        if model_path:
+            logger.info(f"\n📂 Found model: {model_path}")
+            logger.info("🔄 Loading LlamaCpp...")
+
+            llama_llm = LlamaCpp(
+                model_path=model_path,
+                n_ctx=2048,
+                n_threads=4,
+                temperature=0.3,
+                max_tokens=512,
+                verbose=False,
+            )
+
+            model = LlamaCppChatWrapper(llm=llama_llm)
+            logger.info("✅ LlamaCpp loaded successfully!")
+
+        else:
+            logger.info("\n⚠️  GGUF model not found in:")
+            for p in possible_paths:
+                logger.info(f"   - {p}")
+            logger.info("\n📥 To download:")
+            logger.info("   mkdir -p models")
+            logger.info("   cd models")
+            logger.info(
+                "   wget https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf")
+            logger.info(
+                "   mv qwen2.5-0.5b-instruct-q4_k_m.gguf toeic_qwen_q4.gguf")
+    except ImportError as e:
+        logger.info(f"\n⚠️  llama-cpp-python not installed: {e}")
+        logger.info("📦 Install with: pip install llama-cpp-python")
+    except Exception as e:
+        logger.info(f"\n⚠️  Error loading LlamaCpp: {e}")
+    # try:
+    #     model = ChatGoogleGenerativeAI(
+    #         model="gemini-2.5-flash",
+    #         api_key=google_api_key,
+    #         convert_system_message_to_human=True,
+    #         temperature=0.0
+    #     )
+    # except Exception as e:
+    #     logger.error(f"Không thể khởi tạo gemini-2.5-flash model: {e}")
+    #     return
+
+    # --- Initialize LanguageAgentPart5 with Model ---
+    print("\n--- Khởi tạo LanguageAgentPart5 với Model ---")
+
+    try:
+        grammar_agent = LanguageAgentPart5(model=model)
     except Exception as e:
         logger.error(f"Không thể khởi tạo agent: {e}")
         return
@@ -112,36 +190,36 @@ async def main():
     """
 
     # Test với một câu đơn
-    # SINGLE_QUESTION = """
-    # The annual departmental meeting will be held next month. 
-    # All employees are encouraged to _______ this important event.
-    # (A) attendance
-    # (B) attend
-    # (C) attending
-    # (D) attends
-    # """
+    SINGLE_QUESTION = """
+    The annual departmental meeting will be held next month. 
+    All employees are encouraged to _______ this important event.
+    (A) attendance
+    (B) attend
+    (C) attending
+    (D) attends
+    """
 
-    # # Clean input
-    # cleaned_input = clean_part5_question(SINGLE_QUESTION)
-    # # print(f"\n--- Input đã clean ---")
-    # # print(cleaned_input)
+    # Clean input
+    cleaned_input = clean_part5_question(SINGLE_QUESTION)
+    print(f"\n--- Input đã clean ---")
+    print(cleaned_input)
 
-    # try:
-    #     # Sử dụng .ainvoke() (bất đồng bộ)
-    #     result = await grammar_agent.ainvoke({
-    #         "input": cleaned_input
-    #     })
+    try:
+        # Sử dụng .ainvoke() (bất đồng bộ)
+        result = await grammar_agent.ainvoke({
+            "input": cleaned_input
+        })
 
-    #     print("\n" + "="*80)
-    #     print("--- KẾT QUẢ TỪ LANGUAGEAGENTPART5 ---")
-    #     print("="*80)
-    #     print(extract_output_text(result['output']))
-    #     print("="*80)
+        print("\n" + "="*80)
+        print("--- KẾT QUẢ TỪ LANGUAGEAGENTPART5 ---")
+        print("="*80)
+        print(extract_output_text(result['output']))
+        print("="*80)
 
-    # except Exception as e:
-    #     logger.error(f"Lỗi khi chạy agent: {e}")
-    #     import traceback
-    #     traceback.print_exc()
+    except Exception as e:
+        logger.error(f"Lỗi khi chạy agent: {e}")
+        import traceback
+        traceback.print_exc()
 
     # Test với nhiều câu
     print("\n\n" + "="*80)
@@ -153,22 +231,22 @@ async def main():
         questions = extract_multiple_part5_questions(PART_5_EXAMPLES)
         print(f"\nĐã trích xuất {len(questions)} câu hỏi:")
 
-        # for i, q in enumerate(questions, 1):
-        #     print(f"\n--- Câu {i} ---")
-        #     print(q)
-
-        # Process each question separately
         for i, q in enumerate(questions, 1):
-            print(f"\n--- Xử lý Câu {i} ---")
+            print(f"\n--- Câu {i} ---")
             print(q)
 
-            result = await grammar_agent.ainvoke({
-                "input": q
-            })
+        # Process all questions at once
+        all_questions_text = "\n\n".join(questions)
 
-            print(f"\n--- KẾT QUẢ Câu {i} ---")
-            print(extract_output_text(result['output']))
-            print("-" * 40)
+        result_multiple = await grammar_agent.ainvoke({
+            "input": all_questions_text
+        })
+
+        print("\n" + "="*80)
+        print("--- KẾT QUẢ CHO NHIỀU CÂU ---")
+        print("="*80)
+        print(extract_output_text(result_multiple['output']))
+        print("="*80)
 
     except Exception as e:
         logger.error(f"Lỗi khi chạy agent với nhiều câu: {e}")
@@ -179,27 +257,27 @@ async def main():
 # Chạy hàm main bất đồng bộ
 if __name__ == "__main__":
     # Test utils trước
-    # print("="*80)
-    # print("TESTING UTILS")
-    # print("="*80)
+    print("="*80)
+    print("TESTING UTILS")
+    print("="*80)
 
-    # test_input = """
-    # The manager _______ the report yesterday.
-    # (A) submit
-    # (B) submits
-    # (C) submitted
-    # (D) submitting
-    # """
+    test_input = """
+    The manager _______ the report yesterday.
+    (A) submit
+    (B) submits
+    (C) submitted
+    (D) submitting
+    """
 
-    # cleaned = clean_part5_question(test_input)
-    # print("Original:")
-    # print(test_input)
-    # print("\nCleaned:")
-    # print(cleaned)
+    cleaned = clean_part5_question(test_input)
+    print("Original:")
+    print(test_input)
+    print("\nCleaned:")
+    print(cleaned)
 
-    # print("\n" + "="*80)
-    # print("RUNNING AGENT")
-    # print("="*80)
+    print("\n" + "="*80)
+    print("RUNNING AGENT")
+    print("="*80)
 
     # Run async main
     asyncio.run(main())
