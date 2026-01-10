@@ -1,31 +1,27 @@
 import logging
 import asyncio
-import os
 
 from typing import List
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 
 # Import từ module base
 from ..Agent_Base import BaseAgent
-
 from langchain_community.llms import LlamaCpp
 from ..Agent_Base.llm_wrapper import LlamaCppChatWrapper
 from pathlib import Path
-
+# from .models import llm_mistral
 
 # Mock BaseAgent cho demo (trong thực tế sẽ import từ Agent_Base)
-from abc import ABC, abstractmethod
-from langchain_core.runnables import Runnable
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain.agents import create_agent
-
+# from abc import ABC, abstractmethod
+# from langchain_core.runnables import Runnable
+# from langchain_core.language_models.chat_models import BaseChatModel
+# from langchain.agents import create_agent
 
 # Import tools và utils
 from .Agent_Part5_tools import vocab_search, grammar_pattern_lookup, collocation_check, verb_form_analyzer
-from .Agent_Part5_utils import clean_part5_question, extract_multiple_part5_questions
+from .Agent_Part5_utils import clean_part5_question, extract_multiple_part5_questions, extract_output_text
 from .Agent_Part5_prompts import prompt_string
 
 
@@ -33,23 +29,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv(dotenv_path="config/.env")
-
-
-def extract_output_text(output) -> str:
-    """Extract clean text from agent output (handles various formats)."""
-    if isinstance(output, str):
-        return output
-    if isinstance(output, list):
-        texts = []
-        for item in output:
-            if isinstance(item, dict) and 'text' in item:
-                texts.append(item['text'])
-            elif isinstance(item, str):
-                texts.append(item)
-        return "\n".join(texts)
-    if isinstance(output, dict) and 'text' in output:
-        return output['text']
-    return str(output)
 
 
 # --- ĐỊNH NGHĨA AGENT PART 5 ---
@@ -84,21 +63,11 @@ class LanguageAgentPart5(BaseAgent):
 # --- CHẠY DEMO ---
 async def main():
     """Hàm chạy chính (bất đồng bộ) để test agent."""
-
-    # --- Initialize OpenAI Model ---
-    # logger.info("--- Khởi tạo gemini-2.5-flash Model ---")
-
-    # google_api_key = os.environ.get("GOOGLE_API_KEY")
-    # if not google_api_key:
-    #     print("="*50)
-    #     print("LỖI: Vui lòng đặt biến môi trường GOOGLE_API_KEY để chạy ví dụ này.")
-    #     print("="*50)
-    #     return
     logger.info("="*80)
     logger.info("🚀 Khởi tạo Model cho Agent Part 5")
     logger.info("="*80)
     model = None
-    model_name = "Local LlamaCpp"
+    # model_name = "Local LlamaCpp"
     try:
 
         # Try multiple possible paths
@@ -123,7 +92,7 @@ async def main():
                 n_ctx=2048,
                 n_threads=4,
                 temperature=0.3,
-                max_tokens=512,
+                max_tokens=2000,
                 verbose=False,
             )
 
@@ -146,16 +115,6 @@ async def main():
         logger.info("📦 Install with: pip install llama-cpp-python")
     except Exception as e:
         logger.info(f"\n⚠️  Error loading LlamaCpp: {e}")
-    # try:
-    #     model = ChatGoogleGenerativeAI(
-    #         model="gemini-2.5-flash",
-    #         api_key=google_api_key,
-    #         convert_system_message_to_human=True,
-    #         temperature=0.0
-    #     )
-    # except Exception as e:
-    #     logger.error(f"Không thể khởi tạo gemini-2.5-flash model: {e}")
-    #     return
 
     # --- Initialize LanguageAgentPart5 with Model ---
     print("\n--- Khởi tạo LanguageAgentPart5 với Model ---")

@@ -169,3 +169,20 @@ def normalize_blank(text: str, blank_symbol: str = "______") -> str:
     Chuẩn hóa tất cả các dạng blank về một dạng thống nhất.
     """
     return _BLANK_RE.sub(blank_symbol, text)
+
+
+def extract_output_text(output) -> str:
+    """Extract clean text from agent output (handles various formats)."""
+    if isinstance(output, str):
+        return output
+    if isinstance(output, list):
+        texts = []
+        for item in output:
+            if isinstance(item, dict) and 'text' in item:
+                texts.append(item['text'])
+            elif isinstance(item, str):
+                texts.append(item)
+        return "\n".join(texts)
+    if isinstance(output, dict) and 'text' in output:
+        return output['text']
+    return str(output)

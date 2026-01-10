@@ -124,5 +124,5 @@ Unsloth==2025.12.9
 einops==0.8.1
 easydict==1.13
 load_dotenv
-langchain_huggingface==1.2.0
-langchain-mistralai==1.1.1
+# langchain_huggingface==1.2.0
+# langchain-mistralai==1.1.1
