@@ -84,10 +84,12 @@ def pre_validate_part3_context(problem_context: str) -> str:
         return "Bạn cung cấp không đủ đáp án (A)(B)(C)(D) hoặc sai định dạng."
 
 def extract_text(result) -> str:
-        try:
-            return result["output"][0]["text"].strip()
-        except Exception:
-           return ""
+    output = result.get("output", "")
+    if isinstance(output, str):
+        return output.strip()
+    if isinstance(output, list):
+        return output[0].get("text", "").strip()
+    return ""
 
 def format_answer_only(text: str) -> str:
         lines = text.splitlines()

@@ -2,7 +2,7 @@ import requests
 import logging
 import asyncio
 
-from typing import List, Dict, Optional, Tuple
+from typing import List
 from langchain_core.tools import tool, BaseTool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 

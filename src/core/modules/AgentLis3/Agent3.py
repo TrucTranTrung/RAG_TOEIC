@@ -6,9 +6,11 @@ import assemblyai as aai
 from dotenv import load_dotenv
 from typing import List
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
+
+from .models import llm_mistral
 
 # --- 1. XỬ LÝ PATH ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -52,39 +54,29 @@ def call_assemblyai_transcribe(audio_path: str) -> str:
     except Exception as e:
         return f"Lỗi: {str(e)}"
 
-@tool
-def summarize_transcript_tool(transcript: str) -> str:
-    """BẮT BUỘC dùng cho câu hỏi suy luận, mục đích, ý chính."""
-    logger.info("--- [Action]: Gọi Tool tóm tắt cho câu hỏi suy luận ---")
-    return (
-        f"Dữ liệu bài nghe: {transcript}\n\n"
-        "Nhiệm vụ: Phân tích tóm tắt Đối tượng - Hành động - Địa điểm và các manh mối suy luận."
-    )
+# @tool
+# def summarize_transcript_tool(transcript: str) -> str:
+#     """BẮT BUỘC dùng cho câu hỏi suy luận, mục đích, ý chính."""
+#     logger.info("--- [Action]: Gọi Tool tóm tắt cho câu hỏi suy luận ---")
+#     return (
+#         f"Dữ liệu bài nghe: {transcript}\n\n"
+#         "Nhiệm vụ: Phân tích tóm tắt Đối tượng - Hành động - Địa điểm và các manh mối suy luận."
+#     )
 
 # --- 4. CLASS AGENT ---
 class TOEICListeningAgent(BaseAgent):
     def _get_tools(self) -> List:
-        return [call_assemblyai_transcribe, summarize_transcript_tool]
+        return [call_assemblyai_transcribe]
 
     def _get_prompt(self) -> PromptTemplate:
         return PromptTemplate.from_template(UNIFIED_LISTENING_REACT_PROMPT)
 
 # --- 5. MAIN ---
 async def main():
-    google_api_key = os.environ.get("GOOGLE_API_KEY")
-    if not google_api_key:
-        print("LỖI: Chưa có GOOGLE_API_KEY")
-        return
+    agent = TOEICListeningAgent(model=llm_mistral)
 
-    model = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        api_key=google_api_key,
-        temperature=0.0
-    )
-    agent = TOEICListeningAgent(model=model)
-
-    AUDIO_P3 = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\Ld1lt.mp3"
-    AUDIO_P4 = "D:\\Github\\RAG_TOEIC1\\src\\core\\modules\\data_test\\4luSC.mp3"
+    AUDIO_P3 = r"src/core/modules/data_test/Ld1lt.mp3"
+    AUDIO_P4 = r"src/core/modules/data_test/4luSC.mp3"
 
     scenarios = [
         ("P3_CASE_1", AUDIO_P3, "What does the woman say about her phone service?\n A. A. She is unhappy with Z Mobile's service. \nB. She pays a monthly fee of 70 dollars. \nC. C. She gets 700 unlimited minutes with everyone. \nD. She recently moved to Canada for free calls."),
