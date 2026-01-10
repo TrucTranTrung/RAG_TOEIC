@@ -2,7 +2,6 @@ import requests
 import logging
 import asyncio
 
-from random import sample
 from typing import List, Dict, Optional, Tuple
 from langchain_core.tools import tool, BaseTool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
@@ -10,7 +9,7 @@ from langchain_core.prompts import PromptTemplate, BasePromptTemplate
 from ..Agent_Base import BaseAgent
 from .utils import clean_and_extract_passage_simple
 from .prompts import prompt_string
-from .models import llm_mistral, tok, model
+from .models import llm_mistral
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,23 +57,23 @@ def vocab_search(word: str, full: bool = False) -> dict:
             "error": "Definition not found"
         }
     
-@tool
-# def Summarize(word: str, full: bool = False) -> dict:
-def summarize(text: str, max_len=60) -> str:
-    """ 
-       this is a text summarization tool given a text input, it returns a summarized version of the text
-    """
-    inp = "summarize: " + text
-    ids = tok.encode(inp, return_tensors="pt", truncation=True)
-    out = model.generate(
-        ids,
-        max_length=max_len,
-        min_length=20,
-        num_beams=4,
-        length_penalty=1.5,
-        early_stopping=True
-    )
-    return tok.decode(out[0], skip_special_tokens=True)
+# @tool
+# # def Summarize(word: str, full: bool = False) -> dict:
+# def summarize(text: str, max_len=60) -> str:
+#     """ 
+#        this is a text summarization tool given a text input, it returns a summarized version of the text
+#     """
+#     inp = "summarize: " + text
+#     ids = tok.encode(inp, return_tensors="pt", truncation=True)
+#     out = model.generate(
+#         ids,
+#         max_length=max_len,
+#         min_length=20,
+#         num_beams=4,
+#         length_penalty=1.5,
+#         early_stopping=True
+#     )
+#     return tok.decode(out[0], skip_special_tokens=True)
 
 # --- ĐỊNH NGHĨA CÁC CLASS AGENT ---
 class LanguageAgentPart6(BaseAgent):
@@ -83,8 +82,8 @@ class LanguageAgentPart6(BaseAgent):
         """
         Cung cấp danh sách các tools CHUYÊN BIỆT cho Reading Part 6.
         """
-        logger.info("ReadingAgent: Cung cấp tools [vocab_search, summarize]")
-        return [vocab_search, summarize]
+        logger.info("ReadingAgent: Cung cấp tools [vocab_search]")
+        return [vocab_search]
 
 
     def _get_prompt(self) -> BasePromptTemplate:
@@ -101,8 +100,6 @@ async def main():
     """Hàm chạy chính (bất đồng bộ) để test agent."""
 
     # --- Initialize Qwen3 Flash Model ---
-    logger.info("--- Khởi tạo Qwen3 Flash Model ---")
-
     PART_6_PASSAGE = """For your protection, we suggest you ship via UPS. A replacement will be made and if the shoe style you returned is not available, a comparable style will be substituted. We guarantee to match the quality of the shoes you used to _______.
     A. wear
     B. wearing
@@ -123,7 +120,6 @@ async def main():
             "input": s
         })
 
-        print("\n--- Kết quả từ ReadingAgent (Qwen) ---")
         print(f"Câu trả lời cuối cùng: {result['output']}")
 
     except Exception as e:

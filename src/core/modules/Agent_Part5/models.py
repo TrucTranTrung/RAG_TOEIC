@@ -8,7 +8,8 @@ llm_mistral = ChatMistralAI(
     model="mistral-small-latest",
     temperature=0,
     api_key=os.environ["OCR_KEY"],
+    max_tokens=4000,
 )
 
-# tok = T5Tokenizer.from_pretrained("t5-small")
-# model = T5ForConditionalGeneration.from_pretrained("t5-small")
+tok = T5Tokenizer.from_pretrained("t5-small")
+model = T5ForConditionalGeneration.from_pretrained("t5-small")

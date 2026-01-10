@@ -4,7 +4,7 @@ prompt_string = """
 
         **RULES:**
         1. You should answer in VIETNAMESE.
-        2. You Must call vocab_search to get all definition and example sentences for each words in answer, don't answer directly.
+        2. You Must call vocab_search and summarize to get all definition and example sentences and summarize meaning for each words in answer, don't answer directly.
         3. For each question, you must provide:
            - If none, return "Không có đáp án đúng" and explain.
            - The correct answer if have any (A, B, C, or D).

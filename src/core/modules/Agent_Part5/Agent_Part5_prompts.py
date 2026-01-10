@@ -10,8 +10,7 @@ prompt_string = """
         - Viết **lý do ngắn gọn** cho từng đáp án sai (mỗi đáp án 1 dòng, tối đa 20 từ, tập trung vào lỗi ngữ pháp).
         2. Nếu có nhiều câu hỏi, hãy trả lời lần lượt theo thứ tự.
         3. Tất cả phần trả lời và giải thích PHẢI bằng tiếng Việt, dễ hiểu, ngắn gọn.
-        4. Nếu cần tra cứu từ vựng hoặc kiểm tra cấu trúc, bạn có thể sử dụng các công cụ sau:
-        {tools}
+        4. Nếu cần tra cứu từ vựng hoặc kiểm tra cấu trúc, có thể sử dụng các công cụ sau: {tools}
         (Tên công cụ: {tool_names})
 
         BẮT BUỘC TUÂN THEO ĐỊNH DẠNG DƯỚI ĐÂY:
@@ -34,14 +33,6 @@ prompt_string = """
         (D) ...
 
         --- (Lặp lại cho từng câu hỏi) ---
-
-        Cuối cùng, tổng hợp lại ngắn gọn:
-        Final Summary:
-        <Liệt kê tất cả số câu và đáp án đúng, ví dụ:>
-        101: (A) — verb form đúng với chủ ngữ số ít.
-        102: (C) — preposition phù hợp với động từ "depend".
-        103: (B) — word choice: cần danh từ làm object.
-
         BẮT ĐẦU!
 
         Question: {input}
