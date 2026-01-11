@@ -3,14 +3,17 @@ import sys
 import asyncio
 import logging
 import assemblyai as aai
+import ollama
 from dotenv import load_dotenv
 from typing import List
 
-
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
+logging.getLogger("assemblyai").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.ERROR)
 
-from .models import llm_mistral
+from models import llm_mistral
 
 # --- 1. XỬ LÝ PATH ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +30,7 @@ load_dotenv(dotenv_path="config/.env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 ASSEMBLYAI_API_KEY = os.environ.get("ASSEMBLYAI_API_KEY")
 if ASSEMBLYAI_API_KEY:
     aai.settings.api_key = ASSEMBLYAI_API_KEY
@@ -37,16 +41,16 @@ _TRANSCRIPT_CACHE = {}
 @tool
 def call_assemblyai_transcribe(audio_path: str) -> str:
     """Dùng để chuyển audio (.mp3) thành văn bản có gán nhãn giới tính [M]/[F]."""
-    if not ASSEMBLYAI_API_KEY: return "LỖI: Thiếu API Key AssemblyAI."
+    if not ASSEMBLYAI_API_KEY: return "LỖI: Thiếu API Key."
+    
     audio_key = os.path.abspath(audio_path)
     if audio_key in _TRANSCRIPT_CACHE:
-        logger.info(f"--- [Cache HIT]: Returning cached transcript for {audio_path} ---")
         return _TRANSCRIPT_CACHE[audio_key]
 
     transcriber = aai.Transcriber()
     config = aai.TranscriptionConfig(speaker_labels=True)
+    
     try:
-        logger.info(f"--- [Action]: Transcribing {audio_path} ---")
         raw_obj = transcriber.transcribe(audio_path, config=config)
         labeled = label_transcript_gender(raw_obj, audio_path)
         _TRANSCRIPT_CACHE[audio_key] = labeled
@@ -54,19 +58,35 @@ def call_assemblyai_transcribe(audio_path: str) -> str:
     except Exception as e:
         return f"Lỗi: {str(e)}"
 
-# @tool
-# def summarize_transcript_tool(transcript: str) -> str:
-#     """BẮT BUỘC dùng cho câu hỏi suy luận, mục đích, ý chính."""
-#     logger.info("--- [Action]: Gọi Tool tóm tắt cho câu hỏi suy luận ---")
-#     return (
-#         f"Dữ liệu bài nghe: {transcript}\n\n"
-#         "Nhiệm vụ: Phân tích tóm tắt Đối tượng - Hành động - Địa điểm và các manh mối suy luận."
-#     )
 
+@tool
+def summarize_transcript_tool(transcript: str) -> str:
+    """BẮT BUỘC dùng cho câu hỏi suy luận, mục đích, ý chính."""
+    logger.info("--- [Action]: đang tóm tắt bài nghe ---")
+    
+    prompt = f"""
+    Analyze this TOEIC transcript for inference questions.
+    Provide a brief summary in Vietnamese covering:
+    - Main Topic/Purpose
+    - Key Entities (Speaker roles, locations)
+    - Specific Clues (Dates, numbers, reasons)
+    Transcript: {transcript}
+    """
+    
+    try:
+        response = ollama.chat(
+            model='llama3.2', 
+            messages=[{'role': 'user', 'content': prompt}],
+            options={'temperature': 0} 
+        )
+        return response['message']['content']
+    except Exception as e:
+        return f"Lỗi tóm tắt: {str(e)}"
+    
 # --- 4. CLASS AGENT ---
 class TOEICListeningAgent(BaseAgent):
     def _get_tools(self) -> List:
-        return [call_assemblyai_transcribe]
+        return [call_assemblyai_transcribe, summarize_transcript_tool]
 
     def _get_prompt(self) -> PromptTemplate:
         return PromptTemplate.from_template(UNIFIED_LISTENING_REACT_PROMPT)
