@@ -14,6 +14,7 @@ Giải thích:
 - (C): [Chỉ ra điểm mâu thuẫn giữa ảnh và câu này]
 - (D): [Chỉ ra điểm mâu thuẫn giữa ảnh và câu này]
 """
+
 TOEIC_REACT_SYSTEM_PROMPT = """
 You are a TOEIC Part 1 Agent. Available Tools: {tools}
 

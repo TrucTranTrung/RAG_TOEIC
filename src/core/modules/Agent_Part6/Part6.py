@@ -56,7 +56,7 @@ def vocab_search(word: str, full: bool = False) -> dict:
             "meanings": [],
             "error": "Definition not found"
         }
-    
+
 # @tool
 # # def Summarize(word: str, full: bool = False) -> dict:
 # def summarize(text: str, max_len=60) -> str:
@@ -82,7 +82,7 @@ class LanguageAgentPart6(BaseAgent):
         """
         Cung cấp danh sách các tools CHUYÊN BIỆT cho Reading Part 6.
         """
-        logger.info("ReadingAgent: Cung cấp tools [vocab_search]")
+        # logger.info("ReadingAgent: Cung cấp tools [vocab_search]")
         return [vocab_search]
 
 
@@ -90,7 +90,7 @@ class LanguageAgentPart6(BaseAgent):
         """
         Cung cấp một prompt template CỤ THỂ cho ReadingAgent Part 6.
         """
-        logger.info("ReadingAgent: Cung cấp prompt chuyên về Reading")
+        # logger.info("ReadingAgent: Cung cấp prompt chuyên về Reading")
 
         return PromptTemplate.from_template(prompt_string)
 
@@ -109,10 +109,10 @@ async def main():
     # print(s)
 
     # --- Initialize ReadingAgent with Model ---
-    print("\n--- Khởi tạo ReadingAgent với Model ---")
-    reading_agent = LanguageAgentPart6(model=llm_mistral)  # Pass the pre-loaded model
+    # print("\n--- Khởi tạo ReadingAgent với Model ---")
+    reading_agent = LanguageAgentPart6(model=llm_mistral)
 
-    print("\n--- Bắt đầu chạy ReadingAgent (Async) ---")
+    # print("\n--- Bắt đầu chạy ReadingAgent (Async) ---")
 
     try:
         # Sử dụng .ainvoke() (bất đồng bộ) vì đây là API call thật

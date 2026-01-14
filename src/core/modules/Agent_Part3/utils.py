@@ -1,11 +1,8 @@
-import os
 import re
 import logging
 import librosa
 import numpy as np
-from dotenv import load_dotenv
 from .prompts import PITCH_THRESHOLD 
-
 
 logger = logging.getLogger(__name__)
 

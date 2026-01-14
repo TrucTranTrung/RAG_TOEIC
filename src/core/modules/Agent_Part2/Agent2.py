@@ -1,34 +1,25 @@
-import os
 import sys
 import asyncio
 import logging
 from typing import List
 import re
-from dotenv import load_dotenv
 
 # Fix encoding for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
 
-# --- 1. XỬ LÝ PATH & IMPORT ---
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODULES_DIR = os.path.dirname(SCRIPT_DIR) 
-if MODULES_DIR not in sys.path:
-    sys.path.insert(0, MODULES_DIR)
+from ..Agent_Base.Agent import BaseAgent 
+from .utils import pre_validate_part2_context, extract_text, format_answer_only
+from .prompts import REACT_TEMPLATE_P2
+from .models import llm_mistral
 
-from Agent_Base.Agent import BaseAgent 
-from AgentLis2.utils import pre_validate_part2_context, extract_text, format_answer_only
-from AgentLis2.prompts import REACT_TEMPLATE_P2
-
-# --- 2. CONFIG ---
+# --- CONFIG ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-load_dotenv(dotenv_path="config/.env")
 
-# --- 3. ĐỊNH NGHĨA TOOLS ---
+# --- TOOLS ---
 @tool
 def pronoun_logic_filter_tool(tool_input: str) -> str:
     """Lọc nhanh đáp án sai logic đối tượng (Người/Vật)."""
@@ -52,14 +43,14 @@ def pronoun_logic_filter_tool(tool_input: str) -> str:
             bad_list.append(opt[:3])
 
     # --- DÒNG LOG XÁC NHẬN ---
-    if bad_list:
-        print(f"\n>>> [FILTER] ĐÃ LOẠI: {', '.join(bad_list)}")
-    else:
-        print("\n>>> [FILTER] KHÔNG LOẠI CÂU NÀO")
+    # if bad_list:
+    #     print(f"\n>>> [FILTER] ĐÃ LOẠI: {', '.join(bad_list)}")
+    # else:
+    #     print("\n>>> [FILTER] KHÔNG LOẠI CÂU NÀO")
     # ------------------------
 
-    if not bad_list: return "Data sạch. Gemini check cả 3 câu."
-    return f"LOẠI: {', '.join(bad_list)}. Gemini chỉ check các câu còn lại."
+    if not bad_list: return "Data sạch. suy luận cả 3 câu."
+    return f"LOẠI: {', '.join(bad_list)}. chỉ suy luận các câu còn lại."
 
 # --- 4. AGENT CLASS ---
 class TOEICPart2Agent(BaseAgent):
@@ -72,18 +63,7 @@ class TOEICPart2Agent(BaseAgent):
 
 # --- 5. MAIN (FORMAT CHUẨN ĐẸP) ---
 async def main():
-    google_api_key = os.environ.get("GOOGLE_API_KEY")
-    if not google_api_key:
-        print("LỖI: Chưa có GOOGLE_API_KEY")
-        return
-
-    # Khởi tạo model và agent 1 lần duy nhất
-    model = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash", 
-        api_key=google_api_key,
-        temperature=0.0
-    )
-    agent = TOEICPart2Agent(model=model)
+    agent = TOEICPart2Agent(model=llm_mistral)
 
     # GIỮ NGUYÊN NỘI DUNG KỊCH BẢN TEST CỦA PART 2
     scenarios = [
@@ -102,7 +82,6 @@ async def main():
             print(f"\n--- KẾT QUẢ {name} ---")
             print(validate_result)
             continue
-
         # Input data giữ đúng format text của Part 2
         try:
             res = await agent.ainvoke({"input": problem})
