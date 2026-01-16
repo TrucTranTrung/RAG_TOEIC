@@ -125,3 +125,4 @@ load_dotenv
 langchain_core=1.2.7
 # langchain_huggingface==1.2.0
 langchain-mistralai==1.1.1
+spacy
