@@ -1,29 +1,19 @@
-import re
 import os
 import asyncio
 import logging
-import sys
 from typing import List
-from dotenv import load_dotenv
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.prompts import BasePromptTemplate, PromptTemplate
-from langchain_core.tools import tool, Tool
+from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import tool
 
-# --- XỬ LÝ PATH & IMPORT ---
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODULES_DIR = os.path.dirname(SCRIPT_DIR) 
-if MODULES_DIR not in sys.path:
-    sys.path.insert(0, MODULES_DIR)
-
-from Agent_Base.Agent import BaseAgent 
-from utils import encode_image_to_base64, pre_validate_part1_context, extract_text, format_answer_only
-from prompts import ANALYSIS_PROMPT_TEXT, TOEIC_REACT_SYSTEM_PROMPT
+from ..Agent_Base import BaseAgent 
+from .utils import encode_image_to_base64, pre_validate_part1_context, extract_text, format_answer_only
+from .prompts import TOEIC_REACT_SYSTEM_PROMPT
+from .models import model
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-load_dotenv(dotenv_path="config/.env")
+
 
 @tool
 def get_image_data_tool(image_path: str) -> str:
@@ -58,16 +48,7 @@ class TOEICPart1Agent(BaseAgent):
         return PromptTemplate.from_template(TOEIC_REACT_SYSTEM_PROMPT)
 
 async def main():
-    logger.info("--- Khởi tạo Gemini Model ---")
-    google_api_key = os.environ.get("GOOGLE_API_KEY")
-    
-    model = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash", 
-        api_key=google_api_key,
-        temperature=0.0 
-    )
-
-    image1 = r"D:\Github\RAG_TOEIC1\src\core\modules\data_test\mo_ta_tranh1.png"
+    image1 = r"src/core/modules/data_test/mo_ta_tranh1.png"
     toeic_agent = TOEICPart1Agent(model=model)
 
     sample_transcript_ok = "(A) The man is using a screwdriver. (B) The man is hammering something. (C) The man is making the frame by hand. (D) The man is wearing protective glasses."

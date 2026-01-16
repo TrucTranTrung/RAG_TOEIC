@@ -1,17 +1,17 @@
 import logging
 import asyncio
-
 from typing import List
+
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_core.tools import BaseTool
 from langchain_core.prompts import PromptTemplate, BasePromptTemplate
+from langchain_community.llms import LlamaCpp
 
 # Import từ module base
 from ..Agent_Base import BaseAgent
-from langchain_community.llms import LlamaCpp
 from ..Agent_Base.llm_wrapper import LlamaCppChatWrapper
-from pathlib import Path
-# from .models import llm_mistral
+from .models import llm_mistral
 
 # Mock BaseAgent cho demo (trong thực tế sẽ import từ Agent_Base)
 # from abc import ABC, abstractmethod
@@ -120,7 +120,7 @@ async def main():
     print("\n--- Khởi tạo LanguageAgentPart5 với Model ---")
 
     try:
-        grammar_agent = LanguageAgentPart5(model=model)
+        grammar_agent = LanguageAgentPart5(model=llm_mistral)
     except Exception as e:
         logger.error(f"Không thể khởi tạo agent: {e}")
         return
@@ -216,27 +216,27 @@ async def main():
 # Chạy hàm main bất đồng bộ
 if __name__ == "__main__":
     # Test utils trước
-    print("="*80)
-    print("TESTING UTILS")
-    print("="*80)
+    # print("="*80)
+    # print("TESTING UTILS")
+    # print("="*80)
 
-    test_input = """
-    The manager _______ the report yesterday.
-    (A) submit
-    (B) submits
-    (C) submitted
-    (D) submitting
-    """
+    # test_input = """
+    # The manager _______ the report yesterday.
+    # (A) submit
+    # (B) submits
+    # (C) submitted
+    # (D) submitting
+    # """
 
-    cleaned = clean_part5_question(test_input)
-    print("Original:")
-    print(test_input)
-    print("\nCleaned:")
-    print(cleaned)
+    # cleaned = clean_part5_question(test_input)
+    # print("Original:")
+    # print(test_input)
+    # print("\nCleaned:")
+    # print(cleaned)
 
-    print("\n" + "="*80)
-    print("RUNNING AGENT")
-    print("="*80)
+    # print("\n" + "="*80)
+    # print("RUNNING AGENT")
+    # print("="*80)
 
     # Run async main
     asyncio.run(main())

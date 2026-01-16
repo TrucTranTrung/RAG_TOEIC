@@ -1,9 +1,8 @@
 import os
-import sys
 import asyncio
 import logging
 import assemblyai as aai
-import ollama
+# import ollama
 from dotenv import load_dotenv
 from typing import List
 
@@ -13,17 +12,10 @@ logging.getLogger("assemblyai").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
-from models import llm_mistral
-
-# --- 1. XỬ LÝ PATH ---
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODULES_DIR = os.path.dirname(SCRIPT_DIR)
-if MODULES_DIR not in sys.path:
-    sys.path.insert(0, MODULES_DIR)
-
-from Agent_Base.Agent import BaseAgent
-from AgentLis3.utils import label_transcript_gender, extract_text, format_answer_only, pre_validate_part3_context
-from AgentLis3.prompts import UNIFIED_LISTENING_REACT_PROMPT 
+from ..Agent_Base import BaseAgent
+from .models import llm_mistral
+from .utils import label_transcript_gender, extract_text, format_answer_only, pre_validate_part3_context
+from .prompts import UNIFIED_LISTENING_REACT_PROMPT 
 
 # --- 2. CONFIG ---
 load_dotenv(dotenv_path="config/.env")
@@ -59,34 +51,34 @@ def call_assemblyai_transcribe(audio_path: str) -> str:
         return f"Lỗi: {str(e)}"
 
 
-@tool
-def summarize_transcript_tool(transcript: str) -> str:
-    """BẮT BUỘC dùng cho câu hỏi suy luận, mục đích, ý chính."""
-    logger.info("--- [Action]: đang tóm tắt bài nghe ---")
+# @tool
+# def summarize_transcript_tool(transcript: str) -> str:
+#     """BẮT BUỘC dùng cho câu hỏi suy luận, mục đích, ý chính."""
+#     logger.info("--- [Action]: đang tóm tắt bài nghe ---")
     
-    prompt = f"""
-    Analyze this TOEIC transcript for inference questions.
-    Provide a brief summary in Vietnamese covering:
-    - Main Topic/Purpose
-    - Key Entities (Speaker roles, locations)
-    - Specific Clues (Dates, numbers, reasons)
-    Transcript: {transcript}
-    """
+#     prompt = f"""
+#     Analyze this TOEIC transcript for inference questions.
+#     Provide a brief summary in Vietnamese covering:
+#     - Main Topic/Purpose
+#     - Key Entities (Speaker roles, locations)
+#     - Specific Clues (Dates, numbers, reasons)
+#     Transcript: {transcript}
+#     """
     
-    try:
-        response = ollama.chat(
-            model='llama3.2', 
-            messages=[{'role': 'user', 'content': prompt}],
-            options={'temperature': 0} 
-        )
-        return response['message']['content']
-    except Exception as e:
-        return f"Lỗi tóm tắt: {str(e)}"
+#     try:
+#         response = ollama.chat(
+#             model='llama3.2', 
+#             messages=[{'role': 'user', 'content': prompt}],
+#             options={'temperature': 0} 
+#         )
+#         return response['message']['content']
+#     except Exception as e:
+#         return f"Lỗi tóm tắt: {str(e)}"
     
 # --- 4. CLASS AGENT ---
 class TOEICListeningAgent(BaseAgent):
     def _get_tools(self) -> List:
-        return [call_assemblyai_transcribe, summarize_transcript_tool]
+        return [call_assemblyai_transcribe]
 
     def _get_prompt(self) -> PromptTemplate:
         return PromptTemplate.from_template(UNIFIED_LISTENING_REACT_PROMPT)
@@ -99,11 +91,10 @@ async def main():
     AUDIO_P4 = r"src/core/modules/data_test/4luSC.mp3"
 
     scenarios = [
-        ("P3_CASE_1", AUDIO_P3, "What does the woman say about her phone service?\n A. A. She is unhappy with Z Mobile's service. \nB. She pays a monthly fee of 70 dollars. \nC. C. She gets 700 unlimited minutes with everyone. \nD. She recently moved to Canada for free calls."),
+        ("P3_CASE_1", AUDIO_P3, "What does the woman say about her phone service?\n A. She is unhappy with Z Mobile's service. \nB. She pays a monthly fee of 70 dollars. \n C. She gets 700 unlimited minutes with everyone. \n D. She recently moved to Canada for free calls."),
         ("P3_CASE_2", AUDIO_P3, "Who recorded the message?\n(A) Tenant (B) Security (C) Dispatcher (D) Post worker"),
         ("P3_CASE_3", AUDIO_P3, "How old is this building?\n(A) 10 years (B) Office"), # Case lỗi thiếu đáp án
-        ("P4_CASE_1", AUDIO_P4, "When is the new addition to the library scheduled to open?\n(A) At 9 a.m. this Friday (B) At 10 a.m. next Monday (C) At 9 a.m. next Monday (D) At 10 a.m. this Friday"),
-        ("P4_CASE_2", AUDIO_P4, "What is the purpose of the report? ?\n(A) To announce the move of the library.  B.To collect donations to buy new books. C.To introduce a new section of the library. D.To notify people of the new hours of the library")
+        ("P4_CASE_1", AUDIO_P4, "When is the new addition to the library scheduled to open?\n(A) At 9 a.m. this Friday (B) At 10 a.m. next Monday (C) At 9 a.m. next Monday (D) At 10 a.m. this Friday")
     ]
 
     for name, audio, problem in scenarios:

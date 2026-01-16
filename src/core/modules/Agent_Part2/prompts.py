@@ -1,5 +1,4 @@
 # --- AgentLis2/prompts.py ---
-
 ANALYSIS_FORMAT_P2 = """
 ### STRICT OUTPUT FORMAT:
 Đáp án: [Chữ cái đáp án + Nội dung HOẶC "Không có câu nào đúng cả"]

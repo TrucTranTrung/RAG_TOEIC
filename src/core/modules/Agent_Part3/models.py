@@ -1,5 +1,5 @@
 from langchain_mistralai import ChatMistralAI
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+# from transformers import T5Tokenizer, T5ForConditionalGeneration
 from dotenv import load_dotenv
 import os
 load_dotenv(dotenv_path="config/.env")
