@@ -1,0 +1,9 @@
+{
+    "dependencies": [
+        "."
+    ],
+    "graphs": {
+        "host_agent": "./src/core/modules/Host_Agent/server.py:graph"
+    },
+    "env": "./config/.env"
+}

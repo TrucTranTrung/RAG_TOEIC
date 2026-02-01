@@ -8,3 +8,6 @@ jenkins_data
 config/.env
 =*
 models
+.cursor
+.langgraph_api
+eval*

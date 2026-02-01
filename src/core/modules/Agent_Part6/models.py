@@ -1,14 +1,20 @@
-from langchain_mistralai import ChatMistralAI
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-import load_dotenv
+# models.py cho Agent_Part6
+# Model được inject từ Host Agent
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+from dotenv import load_dotenv
 import os
-load_dotenv.load_dotenv(dotenv_path="config/.env")
 
-llm_mistral = ChatMistralAI(
-    model="mistral-small-latest",
+load_dotenv(dotenv_path="config/.env")
+
+# Default model - sẽ được override bởi Host Agent
+google_api_key = os.environ.get("GOOGLE_API_KEY3", os.environ.get("GOOGLE_API_KEY"))
+
+llm_gemini = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
     temperature=0,
-    api_key=os.environ["OCR_KEY"],
-)
+    api_key=google_api_key,
+) if google_api_key else None
 
-# tok = T5Tokenizer.from_pretrained("t5-small")
-# model = T5ForConditionalGeneration.from_pretrained("t5-small")
+# Alias for backward compatibility
+llm_mistral = llm_gemini

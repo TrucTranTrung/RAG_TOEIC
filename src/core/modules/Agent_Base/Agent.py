@@ -123,7 +123,23 @@ class BaseAgent(ABC):
             last_message = result["messages"][-1]
             # Extract content from last message
             if hasattr(last_message, 'content'):
-                output = last_message.content
+                content = last_message.content
+                # Handle content that could be list or string
+                if isinstance(content, list):
+                    # Extract text from list of content parts
+                    text_parts = []
+                    for part in content:
+                        if isinstance(part, str):
+                            text_parts.append(part)
+                        elif isinstance(part, dict):
+                            text_parts.append(part.get("text", part.get("content", str(part))))
+                        elif hasattr(part, 'text'):
+                            text_parts.append(part.text)
+                        else:
+                            text_parts.append(str(part))
+                    output = "\n".join(text_parts)
+                else:
+                    output = str(content)
             else:
                 output = str(last_message)
 
@@ -156,7 +172,23 @@ class BaseAgent(ABC):
             last_message = result["messages"][-1]
             # Extract content from last message
             if hasattr(last_message, 'content'):
-                output = last_message.content
+                content = last_message.content
+                # Handle content that could be list or string
+                if isinstance(content, list):
+                    # Extract text from list of content parts
+                    text_parts = []
+                    for part in content:
+                        if isinstance(part, str):
+                            text_parts.append(part)
+                        elif isinstance(part, dict):
+                            text_parts.append(part.get("text", part.get("content", str(part))))
+                        elif hasattr(part, 'text'):
+                            text_parts.append(part.text)
+                        else:
+                            text_parts.append(str(part))
+                    output = "\n".join(text_parts)
+                else:
+                    output = str(content)
             else:
                 output = str(last_message)
 

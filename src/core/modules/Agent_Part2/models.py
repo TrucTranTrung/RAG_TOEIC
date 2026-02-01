@@ -1,10 +1,20 @@
-from langchain_mistralai import ChatMistralAI
-import load_dotenv
-import os
-load_dotenv.load_dotenv(dotenv_path="config/.env")
+# models.py cho Agent_Part2
+# Model được inject từ Host Agent
 
-llm_mistral = ChatMistralAI(
-    model="mistral-small-latest",
+from langchain_google_genai import ChatGoogleGenerativeAI
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path="config/.env")
+
+# Default model - sẽ được override bởi Host Agent
+google_api_key = os.environ.get("GOOGLE_API_KEY1", os.environ.get("GOOGLE_API_KEY"))
+
+llm_gemini = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
     temperature=0,
-    api_key=os.environ["OCR_KEY"],
-)
+    api_key=google_api_key,
+) if google_api_key else None
+
+# Alias for backward compatibility
+llm_mistral = llm_gemini
